@@ -8,13 +8,13 @@ use skyangle::Conversion;
 /// Linear transformation of M1 and M2 rigid body motions into wavefront and wavefront piston and tip-tilt modes
 #[derive(Serialize, Deserialize, Clone)]
 pub enum OpticalSensitivities {
-    /// Wavefront sensitivity [nx84] where n in the pupil resolution
+    /// Wavefront sensitivity `[nx84]` where n in the pupil resolution
     Wavefront(Vec<f64>),
-    /// Exit pupil tip-tilt sensitivity [2x84]
+    /// Exit pupil tip-tilt sensitivity `[2x84]`
     TipTilt(Vec<f64>),
-    /// Exit pupil segment tip-tilt [14x84]
+    /// Exit pupil segment tip-tilt `[14x84]`
     SegmentTipTilt(Vec<f64>),
-    /// Exit pupil segment piston [7x84]
+    /// Exit pupil segment piston `[7x84]`
     SegmentPiston(Vec<f64>),
     SegmentMask(Vec<i32>),
 }
@@ -67,7 +67,7 @@ impl<'a> From<&'a OpticalSensitivities> for &'a [f64] {
 }
 
 impl OpticalSensitivities {
-    /// Returns M1 wavefront sensitivities [nx42]
+    /// Returns M1 wavefront sensitivities `[nx42]`
     pub fn m1_wavefront(&self) -> Result<na::DMatrix<f64>> {
         match self {
             OpticalSensitivities::Wavefront(sens) => {
@@ -82,7 +82,7 @@ impl OpticalSensitivities {
             _ => Err(OpticalSensitivitiesError::SegmentTipTilt),
         }
     }
-    /// Returns M2 segment tip-tilt sensitivities [14x14]
+    /// Returns M2 segment tip-tilt sensitivities `[14x14]`
     pub fn m2_rxy(&self) -> Result<na::DMatrix<f64>> {
         match self {
             OpticalSensitivities::SegmentTipTilt(sens) => {
@@ -265,7 +265,7 @@ impl OpticalSensitivities {
     #[cfg(feature = "crseo")]
     pub fn compute(
         model: Option<(crseo::Gmt, crseo::Source)>,
-    ) -> std::result::Result<Vec<OpticalSensitivities>> {
+    ) -> Result<Vec<OpticalSensitivities>> {
         use crseo::ceo;
         println!("Computing optical sensitivities ...");
         let now = std::time::Instant::now();

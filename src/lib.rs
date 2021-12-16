@@ -10,9 +10,9 @@ use std::{
 };
 
 pub mod optical_sensitivities;
-use optical_sensitivities::OpticalSensitivities;
+pub use optical_sensitivities::OpticalSensitivities;
 pub mod rigid_body_motions;
-use rigid_body_motions::RigidBodyMotions;
+pub use rigid_body_motions::RigidBodyMotions;
 
 #[derive(thiserror::Error, Debug)]
 pub enum OpticalSensitivitiesError {

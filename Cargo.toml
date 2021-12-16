@@ -14,3 +14,8 @@ thiserror = "1.0.30"
 crseo = { path = "../crseo", optional = true}
 parquet = "6.4.0"
 arrow = "6.4.0"
+anyhow = "1.0.51"
+
+[[bin]]
+name = "makesens"
+required-features = ["crseo"]
