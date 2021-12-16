@@ -1,6 +1,7 @@
-/// Giant Magellan Telescope Linear Optical Model
-///
-/// Optical linear transformations applied to the rigid body motions of the primary and secondary segmented mirrors
+//! Giant Magellan Telescope Linear Optical Model
+//!
+//! Optical linear transformations applied to the rigid body motions of the primary and secondary segmented mirrors
+
 use bincode;
 use std::{
     fs::File,
@@ -34,12 +35,12 @@ pub trait Bin {
         Self: Sized;
 }
 impl Bin for Vec<OpticalSensitivities> {
-    /// Saves sensitivities to 'path'
+    /// Saves sensitivities to `path`
     fn dump<P: AsRef<Path>>(self, path: P) -> Result<Self> {
         bincode::serialize_into(File::create(path)?, &self)?;
         Ok(self)
     }
-    /// Load sensitivities from 'path'
+    /// Load sensitivities from `path`
     fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         Ok(bincode::deserialize_from(File::open(path)?)?)
     }
@@ -51,7 +52,7 @@ pub struct Loader<T> {
     filename: String,
     phantom: PhantomData<T>,
 }
-/// `Loader` loading interface
+/// [Loader] loading interface
 pub trait LoaderTrait<T> {
     fn load(self) -> Result<T>;
 }
@@ -72,7 +73,8 @@ impl<T> Loader<T> {
     }
 }
 impl Default for Loader<Vec<OpticalSensitivities>> {
-    /// Default `Loader` for `Vec<OpticalSensitivities>` expecting the file "optical_sensitivities.rs.bin" in the current folder
+    /// Default [Loader] for [Vec] of [OpticalSensitivities],
+    /// expecting the file `optical_sensitivities.rs.bin` in the current folder
     fn default() -> Self {
         Self {
             path: Path::new(".").to_path_buf(),
@@ -88,7 +90,7 @@ impl LoaderTrait<Vec<OpticalSensitivities>> for Loader<Vec<OpticalSensitivities>
     }
 }
 impl Default for Loader<RigidBodyMotions> {
-    /// Default `Loader` for `Rigidbodymotions` expecting the file "data.parquet" in the current folder
+    /// Default [Loader] for [RigidBodyMotions] expecting the file `data.parquet` in the current folder
     fn default() -> Self {
         Self {
             path: Path::new(".").to_path_buf(),
@@ -111,18 +113,18 @@ pub struct LOMBuilder {
     rbm_loader: Loader<RigidBodyMotions>,
 }
 impl LOMBuilder {
-    /// Sets the loader for `Vec<OpticalSensitivities>`
+    /// Sets the loader for a [Vec] of [OpticalSensitivities]
     pub fn optical_sensitivities(self, sens_loader: Loader<Vec<OpticalSensitivities>>) -> Self {
         Self {
             sens_loader,
             ..self
         }
     }
-    /// Sets the loader for `RigidBodyMotions`
+    /// Sets the loader for [RigidBodyMotions]
     pub fn rigid_body_motions(self, rbm_loader: Loader<RigidBodyMotions>) -> Self {
         Self { rbm_loader, ..self }
     }
-    /// Creates a LOM
+    /// Creates a [LOM]
     pub fn build(self) -> Result<LOM> {
         Ok(LOM {
             sens: self.sens_loader.load()?,
@@ -137,26 +139,26 @@ pub struct LOM {
     rbm: RigidBodyMotions,
 }
 impl LOM {
-    /// Returns the [builder](LOMbuilder)
+    /// Returns the [builder](LOMBuilder)
     pub fn builder() -> LOMBuilder {
         Default::default()
     }
     /// Returns the pupil average tip and tilt
     ///
-    /// The tip-tilt vector is given as \[x1,y1,...,xi,yi,...,xn,yn\] where i is the time index
+    /// The tip-tilt vector is given as `[x1,y1,...,xi,yi,...,xn,yn]` where i is the time index
     pub fn tiptilt(&self) -> Vec<f64> {
         self.sens.as_slice()[OpticalSensitivities::TipTilt(vec![])].into_optics(&self.rbm.data)
     }
     /// Returns the segment piston in the telescope exit pupil
     ///
-    /// The segment piston vector is given as \[p11,p21,...,p71,...,p1i,p2i,...,p7i,...,p1n,p2n,...,p7n] where i is the time index
+    /// The segment piston vector is given as `[p11,p21,...,p71,...,p1i,p2i,...,p7i,...,p1n,p2n,...,p7n]` where i is the time index
     pub fn piston(&self) -> Vec<f64> {
         self.sens.as_slice()[OpticalSensitivities::SegmentPiston(vec![])]
             .into_optics(&self.rbm.data)
     }
     /// Returns the segment averaged tip and tilt in the telescope exit pupil
     ///
-    /// The segment tip-tilt vector is given as \[x11,x21,...,x71,y11,y21,...,y71,...,x1i,x2i,...,x7i,y1i,y2i,...,y7i,...,x1n,x2n,...,x7n,y1n,y2n,...,y7n] where i is the time index
+    /// The segment tip-tilt vector is given as `[x11,x21,...,x71,y11,y21,...,y71,...,x1i,x2i,...,x7i,y1i,y2i,...,y7i,...,x1n,x2n,...,x7n,y1n,y2n,...,y7n]` where i is the time index
     pub fn segment_tiptilt(&self) -> Vec<f64> {
         self.sens.as_slice()[OpticalSensitivities::SegmentTipTilt(vec![])]
             .into_optics(&self.rbm.data)
