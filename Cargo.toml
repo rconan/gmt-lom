@@ -1,0 +1,16 @@
+[package]
+name = "gmt-lom"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bincode = "1.3.3"
+nalgebra = "0.29.0"
+serde = { version = "1.0.131", features = ["derive"] }
+skyangle = { git = "https://github.com/rconan/skyangle.git", branch = "main" }
+thiserror = "1.0.30"
+crseo = { path = "../crseo", optional = true}
+parquet = "6.4.0"
+arrow = "6.4.0"
