@@ -1,6 +1,9 @@
-//! Giant Magellan Telescope Linear Optical Model
+//! # Giant Magellan Telescope Linear Optical Model
 //!
-//! Optical linear transformations applied to the rigid body motions of the primary and secondary segmented mirrors
+//! Optical linear transformations applied to the rigid body motions of the primary and secondary segmented mirrors of the GMT
+//!
+//! The optical sensitivities can be downloaded from [here](https://s3.us-west-2.amazonaws.com/gmto.modeling/optical_sensitivities.rs.bin),
+//! or they can be recomputed with the [makesens](../makesens/index.html) binary compiled with the `crseo` features and run on computer with a NVIDIA GPU.
 
 use bincode;
 use std::{
@@ -25,7 +28,7 @@ pub enum OpticalSensitivitiesError {
 }
 type Result<T> = std::result::Result<T, OpticalSensitivitiesError>;
 
-/// Sensitivities serialization into a bincode file
+/// Sensitivities serialization into a [bincode] file
 pub trait Bin {
     fn dump<P: AsRef<Path>>(self, path: P) -> Result<Self>
     where

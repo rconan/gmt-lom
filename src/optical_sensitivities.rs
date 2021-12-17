@@ -261,7 +261,7 @@ impl OpticalSensitivities {
     ///
     /// Returns a `Vec<OpticalSensitivities>` containing the linear transformations from M1 and M2 rigid body motions to
     /// wavefront, tip-tilt, segment tip-tilt and segment piston
-    /// Optionally provides an optical model or uses: [`ceo!(GMT)`](crate::GMT) and [`ceo!(SOURCE)`](crate::SOURCE)
+    /// Optionally provides an optical model or uses: [`ceo!(GMT)`](crseo::GMT) and [`ceo!(SOURCE)`](crseo::SOURCE)
     #[cfg(feature = "crseo")]
     pub fn compute(
         model: Option<(crseo::Gmt, crseo::Source)>,
