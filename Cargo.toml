@@ -2,6 +2,7 @@
 name = "gmt-lom"
 version = "0.1.0"
 edition = "2021"
+default-run = "main"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -15,6 +16,11 @@ crseo = { path = "../crseo", optional = true}
 parquet = "6.4.0"
 arrow = "6.4.0"
 anyhow = "1.0.51"
+complot = { version = "0.3.1", features = ["png"], optional = true }
+
+[[bin]]
+name = "main"
+required-features = ["complot"]
 
 [[bin]]
 name = "makesens"

@@ -89,6 +89,7 @@ impl Default for Loader<Vec<OpticalSensitivities>> {
 impl LoaderTrait<Vec<OpticalSensitivities>> for Loader<Vec<OpticalSensitivities>> {
     /// Loads precomputed optical sensitivities
     fn load(self) -> Result<Vec<OpticalSensitivities>> {
+        println!("Loading optical sensitivities ...");
         <Vec<OpticalSensitivities> as Bin>::load(self.path.join(self.filename))
     }
 }
@@ -105,6 +106,7 @@ impl Default for Loader<RigidBodyMotions> {
 impl LoaderTrait<RigidBodyMotions> for Loader<RigidBodyMotions> {
     /// Loads M1 and M2 rigid body motions
     fn load(self) -> Result<RigidBodyMotions> {
+        println!("Loading rigid body motions ...");
         RigidBodyMotions::from_parquet(self.path.join(self.filename))
     }
 }
@@ -146,20 +148,24 @@ impl LOM {
     pub fn builder() -> LOMBuilder {
         Default::default()
     }
-    /// Returns the pupil average tip and tilt
+    /// Returns a reference to the time vector
+    pub fn time(&self) -> &[f64] {
+        self.rbm.time.as_slice()
+    }
+    /// Returns the pupil average tip and tilt in `[mas]`
     ///
     /// The tip-tilt vector is given as `[x1,y1,...,xi,yi,...,xn,yn]` where i is the time index
     pub fn tiptilt(&self) -> Vec<f64> {
         self.sens.as_slice()[OpticalSensitivities::TipTilt(vec![])].into_optics(&self.rbm.data)
     }
-    /// Returns the segment piston in the telescope exit pupil
+    /// Returns the segment piston in the telescope exit pupil in `[nm]`
     ///
     /// The segment piston vector is given as `[p11,p21,...,p71,...,p1i,p2i,...,p7i,...,p1n,p2n,...,p7n]` where i is the time index
     pub fn piston(&self) -> Vec<f64> {
         self.sens.as_slice()[OpticalSensitivities::SegmentPiston(vec![])]
             .into_optics(&self.rbm.data)
     }
-    /// Returns the segment averaged tip and tilt in the telescope exit pupil
+    /// Returns the segment averaged tip and tilt in the telescope exit pupil in `[mas]`
     ///
     /// The segment tip-tilt vector is given as `[x11,x21,...,x71,y11,y21,...,y71,...,x1i,x2i,...,x7i,y1i,y2i,...,y7i,...,x1n,x2n,...,x7n,y1n,y2n,...,y7n]` where i is the time index
     pub fn segment_tiptilt(&self) -> Vec<f64> {
