@@ -3,7 +3,41 @@
 //! Optical linear transformations applied to the rigid body motions of the primary and secondary segmented mirrors of the GMT
 //!
 //! The optical sensitivities can be downloaded from [here](https://s3.us-west-2.amazonaws.com/gmto.modeling/optical_sensitivities.rs.bin),
-//! or they can be recomputed with the [makesens](../makesens/index.html) binary compiled with the `crseo` features and run on computer with a NVIDIA GPU.
+//! or they can be recomputed with the [makesens](../makesens/index.html) binary compiled with the `crseo` features
+//! and run on computer with a NVIDIA GPU.
+//!
+//! # Example
+//! ```
+//! use std::iter::once;
+//! use skyangle::Conversion;
+//! use gmt_lom::LOM;
+//!
+//! let m1_rbm = vec![vec![0f64; 6]; 7];
+//! let mut m2_rbm = vec![vec![0f64; 6]; 7];
+//! m2_rbm
+//!     .iter_mut()
+//!     .skip(1)
+//!     .step_by(2)
+//!     .take(3)
+//!     .for_each(|str| {
+//!        str[3] = 1f64.from_arcsec();
+//!        str[4] = 1f64.from_arcsec();
+//!  });
+//! m2_rbm[6][3] = 1f64.from_arcsec();
+//! m2_rbm[6][4] = 1f64.from_arcsec();
+//! let data = once((
+//!     m1_rbm.into_iter().flatten().collect::<Vec<f64>>(),
+//!     m2_rbm.into_iter().flatten().collect::<Vec<f64>>(),
+//! ));
+//! let lom = LOM::builder()
+//!     .into_iter_rigid_body_motions(data)
+//!     .build()
+//!     .unwrap();
+//! let stt = lom.segment_tiptilt();
+//! println!("Segment tiptilt:");
+//! println!(" - x: {:.0?} mas", &stt[..7]);
+//! println!(" - y: {:.0?} mas", &stt[7..]);
+//! ```
 
 use bincode;
 use std::{
@@ -132,7 +166,7 @@ impl LOMBuilder {
             ..self
         })
     }
-    /// Sets the [parquet] loader for [RigidBodyMotions]
+    /// Sets the [parquet](https://docs.rs/parquet) loader for [RigidBodyMotions]
     #[cfg(feature = "apache")]
     pub fn load_rigid_body_motions(self, rbm_loader: Loader<RigidBodyMotions>) -> Result<Self> {
         Ok(Self {

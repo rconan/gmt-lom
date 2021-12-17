@@ -75,7 +75,7 @@ pub mod parquet {
     use std::{fs::File, path::Path, sync::Arc};
 
     impl RigidBodyMotions {
-        /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet] file
+        /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) file
         pub fn from_parquet<P: AsRef<Path>>(path: P) -> Result<Self> {
             let file = File::open(path).unwrap();
             let file_reader = SerializedFileReader::new(file).unwrap();
