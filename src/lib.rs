@@ -95,6 +95,7 @@ impl LoaderTrait<Vec<OpticalSensitivities>> for Loader<Vec<OpticalSensitivities>
         <Vec<OpticalSensitivities> as Bin>::load(self.path.join(self.filename))
     }
 }
+#[cfg(feature = "apache")]
 impl Default for Loader<RigidBodyMotions> {
     /// Default [Loader] for [RigidBodyMotions] expecting the file `data.parquet` in the current folder
     fn default() -> Self {
@@ -105,6 +106,7 @@ impl Default for Loader<RigidBodyMotions> {
         }
     }
 }
+#[cfg(feature = "apache")]
 impl LoaderTrait<RigidBodyMotions> for Loader<RigidBodyMotions> {
     /// Loads M1 and M2 rigid body motions
     fn load(self) -> Result<RigidBodyMotions> {
@@ -131,6 +133,7 @@ impl LOMBuilder {
         })
     }
     /// Sets the [parquet] loader for [RigidBodyMotions]
+    #[cfg(feature = "apache")]
     pub fn load_rigid_body_motions(self, rbm_loader: Loader<RigidBodyMotions>) -> Result<Self> {
         Ok(Self {
             rbm: Some(rbm_loader.load()?),

@@ -61,6 +61,7 @@ impl RigidBodyMotions {
     }
 }
 
+#[cfg(feature = "apache")]
 pub mod parquet {
     use super::RigidBodyMotions;
     use crate::Result;
