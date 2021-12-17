@@ -18,15 +18,17 @@ pub mod rigid_body_motions;
 pub use rigid_body_motions::RigidBodyMotions;
 
 #[derive(thiserror::Error, Debug)]
-pub enum OpticalSensitivitiesError {
+pub enum LinearOpticalModelError {
     #[error("sensitivities file not found (optical_sensitivities.rs.bin)")]
     SensitivityFile(#[from] std::io::Error),
     #[error("sensitivities cannot be loaded from optical_sensitivities.rs.bin")]
     SensitivityData(#[from] bincode::Error),
     #[error("segment tip-tilt sensitivity is missing")]
     SegmentTipTilt,
+    #[error("rigid body motions are missing")]
+    MissingRigidBodyMotions,
 }
-type Result<T> = std::result::Result<T, OpticalSensitivitiesError>;
+type Result<T> = std::result::Result<T, LinearOpticalModelError>;
 
 /// Sensitivities serialization into a [bincode] file
 pub trait Bin {
@@ -114,26 +116,54 @@ impl LoaderTrait<RigidBodyMotions> for Loader<RigidBodyMotions> {
 /// LOM builder
 #[derive(Default)]
 pub struct LOMBuilder {
-    sens_loader: Loader<Vec<OpticalSensitivities>>,
-    rbm_loader: Loader<RigidBodyMotions>,
+    sens: Option<Vec<OpticalSensitivities>>,
+    rbm: Option<RigidBodyMotions>,
 }
 impl LOMBuilder {
     /// Sets the [bincode] loader for a [Vec] of [OpticalSensitivities]
-    pub fn optical_sensitivities(self, sens_loader: Loader<Vec<OpticalSensitivities>>) -> Self {
+    pub fn load_optical_sensitivities(
+        self,
+        sens_loader: Loader<Vec<OpticalSensitivities>>,
+    ) -> Result<Self> {
+        Ok(Self {
+            sens: Some(sens_loader.load()?),
+            ..self
+        })
+    }
+    /// Sets the [parquet] loader for [RigidBodyMotions]
+    pub fn load_rigid_body_motions(self, rbm_loader: Loader<RigidBodyMotions>) -> Result<Self> {
+        Ok(Self {
+            rbm: Some(rbm_loader.load()?),
+            ..self
+        })
+    }
+    /// Sets [Rigidbodymotions] from an iterator of [tuple] of M1 and M2 [Vec] of 42 rigid body motions
+    pub fn into_iter_rigid_body_motions(
+        self,
+        data: impl Iterator<Item = (Vec<f64>, Vec<f64>)>,
+    ) -> Self {
         Self {
-            sens_loader,
+            rbm: Some(data.collect()),
             ..self
         }
     }
-    /// Sets the [parquet] loader for [RigidBodyMotions]
-    pub fn rigid_body_motions(self, rbm_loader: Loader<RigidBodyMotions>) -> Self {
-        Self { rbm_loader, ..self }
+    /// Sets [Rigidbodymotions] from an iterator of [tuple] of M1 and M2 [slice] of 42 rigid body motions
+    pub fn iter_rigid_body_motions<'a>(
+        self,
+        data: impl Iterator<Item = (&'a [f64], &'a [f64])>,
+    ) -> Self {
+        Self {
+            rbm: Some(data.collect()),
+            ..self
+        }
     }
     /// Creates a [LOM]
     pub fn build(self) -> Result<LOM> {
         Ok(LOM {
-            sens: self.sens_loader.load()?,
-            rbm: self.rbm_loader.load()?,
+            sens: self.sens.unwrap_or(Loader::default().load()?),
+            rbm: self
+                .rbm
+                .ok_or(LinearOpticalModelError::MissingRigidBodyMotions)?,
         })
     }
 }

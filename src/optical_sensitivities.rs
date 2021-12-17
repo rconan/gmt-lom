@@ -1,4 +1,4 @@
-use crate::{OpticalSensitivitiesError, Result};
+use crate::{LinearOpticalModelError, Result};
 use nalgebra as na;
 use serde::{Deserialize, Serialize};
 use skyangle::Conversion;
@@ -79,7 +79,7 @@ impl OpticalSensitivities {
                     m1_tr.chunks(n).flat_map(|x| x.to_vec()),
                 ))
             }
-            _ => Err(OpticalSensitivitiesError::SegmentTipTilt),
+            _ => Err(LinearOpticalModelError::SegmentTipTilt),
         }
     }
     /// Returns M2 segment tip-tilt sensitivities `[14x14]`
@@ -97,7 +97,7 @@ impl OpticalSensitivities {
                         .flat_map(|x| (&x[..14 * 2]).to_vec()),
                 ))
             }
-            _ => Err(OpticalSensitivitiesError::SegmentTipTilt),
+            _ => Err(LinearOpticalModelError::SegmentTipTilt),
         }
     }
     pub fn into_optics(&self, rbm: &na::DMatrix<f64>) -> Vec<f64> {
