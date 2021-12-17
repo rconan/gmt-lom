@@ -118,14 +118,14 @@ pub struct LOMBuilder {
     rbm_loader: Loader<RigidBodyMotions>,
 }
 impl LOMBuilder {
-    /// Sets the loader for a [Vec] of [OpticalSensitivities]
+    /// Sets the [bincode] loader for a [Vec] of [OpticalSensitivities]
     pub fn optical_sensitivities(self, sens_loader: Loader<Vec<OpticalSensitivities>>) -> Self {
         Self {
             sens_loader,
             ..self
         }
     }
-    /// Sets the loader for [RigidBodyMotions]
+    /// Sets the [parquet] loader for [RigidBodyMotions]
     pub fn rigid_body_motions(self, rbm_loader: Loader<RigidBodyMotions>) -> Self {
         Self { rbm_loader, ..self }
     }
@@ -148,28 +148,28 @@ impl LOM {
     pub fn builder() -> LOMBuilder {
         Default::default()
     }
-    /// Returns a reference to the time vector
-    pub fn time(&self) -> &[f64] {
-        self.rbm.time.as_slice()
+    /// Returns a the time vector
+    pub fn time(&self) -> Vec<f64> {
+        self.rbm.time()
     }
     /// Returns the pupil average tip and tilt in `[mas]`
     ///
     /// The tip-tilt vector is given as `[x1,y1,...,xi,yi,...,xn,yn]` where i is the time index
     pub fn tiptilt(&self) -> Vec<f64> {
-        self.sens.as_slice()[OpticalSensitivities::TipTilt(vec![])].into_optics(&self.rbm.data)
+        self.sens.as_slice()[OpticalSensitivities::TipTilt(vec![])].into_optics(self.rbm.data())
     }
     /// Returns the segment piston in the telescope exit pupil in `[nm]`
     ///
     /// The segment piston vector is given as `[p11,p21,...,p71,...,p1i,p2i,...,p7i,...,p1n,p2n,...,p7n]` where i is the time index
     pub fn piston(&self) -> Vec<f64> {
         self.sens.as_slice()[OpticalSensitivities::SegmentPiston(vec![])]
-            .into_optics(&self.rbm.data)
+            .into_optics(self.rbm.data())
     }
     /// Returns the segment averaged tip and tilt in the telescope exit pupil in `[mas]`
     ///
     /// The segment tip-tilt vector is given as `[x11,x21,...,x71,y11,y21,...,y71,...,x1i,x2i,...,x7i,y1i,y2i,...,y7i,...,x1n,x2n,...,x7n,y1n,y2n,...,y7n]` where i is the time index
     pub fn segment_tiptilt(&self) -> Vec<f64> {
         self.sens.as_slice()[OpticalSensitivities::SegmentTipTilt(vec![])]
-            .into_optics(&self.rbm.data)
+            .into_optics(self.rbm.data())
     }
 }

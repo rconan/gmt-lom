@@ -1,6 +1,64 @@
+use std::iter::FromIterator;
+
+/// GMT M1 and M2 segment rigid body motions
+///
+/// The rigid body motions are saved in a matrix with 84 rows and as many columns as the number of time steps
+/// A row has the following format: `[M2,M1]` where `[Mi]=[S1,S2,S3,S4,S5,S6,S7] and `[Sj]=[Tjx,Tjy,Tjz,Rjx,Rjy,Rjz]`
 pub struct RigidBodyMotions {
-    pub time: Vec<f64>,
-    pub data: nalgebra::DMatrix<f64>,
+    // sampling frequency
+    sampling_frequency: Option<f64>,
+    // time vector
+    time: Option<Vec<f64>>,
+    // `[84,n]` matrix of rigid body motion
+    data: nalgebra::DMatrix<f64>,
+}
+/// Creates a [RigidBodymotions] from an iterator of [tuple] of M1 and M2 [Vec] of 42 rigid body motions
+impl FromIterator<(Vec<f64>, Vec<f64>)> for RigidBodyMotions {
+    fn from_iter<T: IntoIterator<Item = (Vec<f64>, Vec<f64>)>>(iter: T) -> Self {
+        let data: Vec<f64> = iter
+            .into_iter()
+            .flat_map(|(m1, m2)| m1.into_iter().chain(m2.into_iter()).collect::<Vec<f64>>())
+            .collect();
+        Self {
+            sampling_frequency: None,
+            time: None,
+            data: nalgebra::DMatrix::from_vec(84, data.len(), data),
+        }
+    }
+}
+/// Creates a [RigidBodymotions] from an iterator of [tuple] of M1 and M2 [slice] of 42 rigid body motions
+impl<'a> FromIterator<(&'a [f64], &'a [f64])> for RigidBodyMotions {
+    fn from_iter<T: IntoIterator<Item = (&'a [f64], &'a [f64])>>(iter: T) -> Self {
+        let data: Vec<f64> = iter
+            .into_iter()
+            .flat_map(|(m1, m2)| {
+                m1.iter()
+                    .cloned()
+                    .chain(m2.iter().cloned())
+                    .collect::<Vec<f64>>()
+            })
+            .collect();
+        Self {
+            sampling_frequency: None,
+            time: None,
+            data: nalgebra::DMatrix::from_vec(84, data.len(), data),
+        }
+    }
+}
+impl RigidBodyMotions {
+    /// Returns the time vector
+    pub fn time(&self) -> Vec<f64> {
+        if let Some(time) = &self.time {
+            time.to_vec()
+        } else {
+            let tau = self.sampling_frequency.unwrap_or(1f64).recip();
+            (0..self.data.ncols()).map(|i| tau * i as f64).collect()
+        }
+    }
+    /// Returns a reference to the rigid body motion `[84,n]` matrix
+    pub fn data(&self) -> &nalgebra::DMatrix<f64> {
+        &self.data
+    }
 }
 
 pub mod parquet {
@@ -16,6 +74,7 @@ pub mod parquet {
     use std::{fs::File, path::Path, sync::Arc};
 
     impl RigidBodyMotions {
+        /// Creates a [Rigidbodymotions] from M1 and M2 rigid body motions saved in a [parquet] file
         pub fn from_parquet<P: AsRef<Path>>(path: P) -> Result<Self> {
             let file = File::open(path).unwrap();
             let file_reader = SerializedFileReader::new(file).unwrap();
@@ -72,7 +131,8 @@ pub mod parquet {
                 .unzip();
             let n = time.len();
             Ok(Self {
-                time,
+                sampling_frequency: Some((time[1] - time[0]).recip()),
+                time: Some(time),
                 data: na::DMatrix::from_iterator(84, n, rbm.into_iter().flatten()),
             })
         }
