@@ -451,21 +451,3 @@ pub fn from_opticals(senses: &[OpticalSensitivities]) -> na::DMatrix<f64> {
         .collect();
     na::DMatrix::from_column_slice(n_rows, 84, &data)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sens_m2_rxy() {
-        /*let sensitivities = OpticalSensitivities::load()
-        .or_else(|_| OpticalSensitivities::compute().unwrap().to_bin())
-        .unwrap();*/
-        let sensitivities = OpticalSensitivities::compute(None)
-            .unwrap()
-            .to_bin()
-            .unwrap();
-        let m2_rxy = sensitivities[3].m2_rxy().unwrap();
-        println!("M2 Rxy : {:.3}", m2_rxy);
-    }
-}

@@ -206,3 +206,43 @@ impl LOM {
             .into_optics(self.rbm.data())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use skyangle::{Conversion, SkyAngle};
+    use std::iter::once;
+
+    #[test]
+    fn tiptilt() {
+        let mut m1_rbm = vec![vec![0f64; 6]; 7];
+        let mut m2_rbm = vec![vec![0f64; 6]; 7];
+        m1_rbm
+            .iter_mut()
+            .step_by(2)
+            .for_each(|str| str[3] = 1f64.from_arcsec());
+        m2_rbm
+            .iter_mut()
+            .skip(1)
+            .step_by(2)
+            .take(3)
+            .for_each(|str| str[3] = 1f64.from_arcsec());
+        m1_rbm[6][3] = 0.5f64.from_arcsec();
+        m2_rbm[6][3] = (-4f64).from_arcsec();
+        let data = once((
+            m1_rbm.into_iter().flatten().collect::<Vec<f64>>(),
+            m2_rbm.into_iter().flatten().collect::<Vec<f64>>(),
+        ));
+        let lom = LOM::builder()
+            .into_iter_rigid_body_motions(data)
+            .build()
+            .unwrap();
+        let stt = lom.segment_tiptilt();
+        let mag: Vec<_> = stt[..7]
+            .iter()
+            .zip(&stt[7..])
+            .map(|(x, y)| x.hypot(*y))
+            .collect();
+        print!("Segment tiptilt : {:.0?} mas", mag);
+    }
+}

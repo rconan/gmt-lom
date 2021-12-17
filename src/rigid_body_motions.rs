@@ -22,7 +22,7 @@ impl FromIterator<(Vec<f64>, Vec<f64>)> for RigidBodyMotions {
         Self {
             sampling_frequency: None,
             time: None,
-            data: nalgebra::DMatrix::from_vec(84, data.len(), data),
+            data: nalgebra::DMatrix::from_vec(84, data.len() / 84, data),
         }
     }
 }
@@ -41,7 +41,7 @@ impl<'a> FromIterator<(&'a [f64], &'a [f64])> for RigidBodyMotions {
         Self {
             sampling_frequency: None,
             time: None,
-            data: nalgebra::DMatrix::from_vec(84, data.len(), data),
+            data: nalgebra::DMatrix::from_vec(84, data.len() / 84, data),
         }
     }
 }
