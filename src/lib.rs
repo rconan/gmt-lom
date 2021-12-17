@@ -137,7 +137,7 @@ impl LOMBuilder {
             ..self
         })
     }
-    /// Sets [Rigidbodymotions] from an iterator of [tuple] of M1 and M2 [Vec] of 42 rigid body motions
+    /// Sets [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 [Vec] of 42 rigid body motions
     pub fn into_iter_rigid_body_motions(
         self,
         data: impl Iterator<Item = (Vec<f64>, Vec<f64>)>,
@@ -147,7 +147,7 @@ impl LOMBuilder {
             ..self
         }
     }
-    /// Sets [Rigidbodymotions] from an iterator of [tuple] of M1 and M2 [slice] of 42 rigid body motions
+    /// Sets [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 [slice] of 42 rigid body motions
     pub fn iter_rigid_body_motions<'a>(
         self,
         data: impl Iterator<Item = (&'a [f64], &'a [f64])>,

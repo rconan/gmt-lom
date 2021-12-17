@@ -3,7 +3,7 @@ use std::iter::FromIterator;
 /// GMT M1 and M2 segment rigid body motions
 ///
 /// The rigid body motions are saved in a matrix with 84 rows and as many columns as the number of time steps
-/// A row has the following format: `[M2,M1]` where `[Mi]=[S1,S2,S3,S4,S5,S6,S7] and `[Sj]=[Tjx,Tjy,Tjz,Rjx,Rjy,Rjz]`
+/// A row has the following format: `\[M2,M1\]` where `\[Mi\]=\[S1,S2,S3,S4,S5,S6,S7\] and `\[Sj\]=\[Tjx,Tjy,Tjz,Rjx,Rjy,Rjz\]`
 pub struct RigidBodyMotions {
     // sampling frequency
     sampling_frequency: Option<f64>,
@@ -12,7 +12,7 @@ pub struct RigidBodyMotions {
     // `[84,n]` matrix of rigid body motion
     data: nalgebra::DMatrix<f64>,
 }
-/// Creates a [RigidBodymotions] from an iterator of [tuple] of M1 and M2 [Vec] of 42 rigid body motions
+/// Creates a [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 [Vec] of 42 rigid body motions
 impl FromIterator<(Vec<f64>, Vec<f64>)> for RigidBodyMotions {
     fn from_iter<T: IntoIterator<Item = (Vec<f64>, Vec<f64>)>>(iter: T) -> Self {
         let data: Vec<f64> = iter
@@ -26,7 +26,7 @@ impl FromIterator<(Vec<f64>, Vec<f64>)> for RigidBodyMotions {
         }
     }
 }
-/// Creates a [RigidBodymotions] from an iterator of [tuple] of M1 and M2 [slice] of 42 rigid body motions
+/// Creates a [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 [slice] of 42 rigid body motions
 impl<'a> FromIterator<(&'a [f64], &'a [f64])> for RigidBodyMotions {
     fn from_iter<T: IntoIterator<Item = (&'a [f64], &'a [f64])>>(iter: T) -> Self {
         let data: Vec<f64> = iter
@@ -74,7 +74,7 @@ pub mod parquet {
     use std::{fs::File, path::Path, sync::Arc};
 
     impl RigidBodyMotions {
-        /// Creates a [Rigidbodymotions] from M1 and M2 rigid body motions saved in a [parquet] file
+        /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet] file
         pub fn from_parquet<P: AsRef<Path>>(path: P) -> Result<Self> {
             let file = File::open(path).unwrap();
             let file_reader = SerializedFileReader::new(file).unwrap();
