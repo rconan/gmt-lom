@@ -12,9 +12,36 @@ pub struct RigidBodyMotions {
     // `[84,n]` matrix of rigid body motion
     data: nalgebra::DMatrix<f64>,
 }
+/// Creates a [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 7 segments [Vec] of 6 rigid body motions (Txyz and Rxyz)
+impl FromIterator<(Vec<Vec<f64>>, Vec<Vec<f64>>)> for RigidBodyMotions {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = (Vec<Vec<f64>>, Vec<Vec<f64>>)>,
+    {
+        let data: Vec<f64> = iter
+            .into_iter()
+            .map(|(m1, m2)| {
+                (
+                    m1.into_iter().flatten().collect::<Vec<f64>>(),
+                    m2.into_iter().flatten().collect::<Vec<f64>>(),
+                )
+            })
+            .flat_map(|(m1, m2)| m1.into_iter().chain(m2.into_iter()).collect::<Vec<f64>>())
+            .collect();
+        Self {
+            sampling_frequency: None,
+            time: None,
+            data: nalgebra::DMatrix::from_vec(84, data.len() / 84, data),
+        }
+    }
+}
+/*
 /// Creates a [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 [Vec] of 42 rigid body motions
 impl FromIterator<(Vec<f64>, Vec<f64>)> for RigidBodyMotions {
-    fn from_iter<T: IntoIterator<Item = (Vec<f64>, Vec<f64>)>>(iter: T) -> Self {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = (Vec<f64>, Vec<f64>)>,
+    {
         let data: Vec<f64> = iter
             .into_iter()
             .flat_map(|(m1, m2)| m1.into_iter().chain(m2.into_iter()).collect::<Vec<f64>>())
@@ -26,9 +53,13 @@ impl FromIterator<(Vec<f64>, Vec<f64>)> for RigidBodyMotions {
         }
     }
 }
+*/
 /// Creates a [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 [slice] of 42 rigid body motions
 impl<'a> FromIterator<(&'a [f64], &'a [f64])> for RigidBodyMotions {
-    fn from_iter<T: IntoIterator<Item = (&'a [f64], &'a [f64])>>(iter: T) -> Self {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = (&'a [f64], &'a [f64])>,
+    {
         let data: Vec<f64> = iter
             .into_iter()
             .flat_map(|(m1, m2)| {

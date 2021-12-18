@@ -4,7 +4,7 @@
 //!
 //! The optical sensitivities can be downloaded from [here](https://s3.us-west-2.amazonaws.com/gmto.modeling/optical_sensitivities.rs.bin),
 //! or they can be recomputed with the [makesens](../makesens/index.html) binary compiled with the `crseo` features
-//! and run on computer with a NVIDIA GPU.
+//! and run on a computer with a NVIDIA GPU.
 //!
 //! # Example
 //! ```
@@ -16,27 +16,26 @@
 //! let mut m2_rbm = vec![vec![0f64; 6]; 7];
 //! m2_rbm
 //!     .iter_mut()
-//!     .skip(1)
 //!     .step_by(2)
-//!     .take(3)
 //!     .for_each(|str| {
 //!        str[3] = 1f64.from_arcsec();
 //!        str[4] = 1f64.from_arcsec();
 //!  });
 //! m2_rbm[6][3] = 1f64.from_arcsec();
 //! m2_rbm[6][4] = 1f64.from_arcsec();
-//! let data = once((
-//!     m1_rbm.into_iter().flatten().collect::<Vec<f64>>(),
-//!     m2_rbm.into_iter().flatten().collect::<Vec<f64>>(),
-//! ));
 //! let lom = LOM::builder()
-//!     .into_iter_rigid_body_motions(data)
+//!     .into_iter_rigid_body_motions(once((m1_rbm, m2_rbm)))
 //!     .build()
 //!     .unwrap();
+//! let tt = lom.tiptilt();
+//! println!(" Tiptilt: {:.0?}mas", tt);
 //! let stt = lom.segment_tiptilt();
 //! println!("Segment tiptilt:");
-//! println!(" - x: {:.0?} mas", &stt[..7]);
-//! println!(" - y: {:.0?} mas", &stt[7..]);
+//! println!(" - x: {:.0?}mas", &stt[..7]);
+//! println!(" - y: {:.0?}mas", &stt[7..]);
+//! let sp = lom.segment_piston();
+//! println!("Segment piston:");
+//! sp.chunks(7).enumerate().for_each(|(k, sp)| println!(" - S{}: {:.0?}nm", k + 1, sp) );
 //! ```
 
 use bincode;
@@ -174,10 +173,10 @@ impl LOMBuilder {
             ..self
         })
     }
-    /// Sets [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 [Vec] of 42 rigid body motions
+    /// Sets [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 segments [Vec] of 6 rigid body motions (Txyz and Rxyz)
     pub fn into_iter_rigid_body_motions(
         self,
-        data: impl Iterator<Item = (Vec<f64>, Vec<f64>)>,
+        data: impl Iterator<Item = (Vec<Vec<f64>>, Vec<Vec<f64>>)>,
     ) -> Self {
         Self {
             rbm: Some(data.collect()),
@@ -228,7 +227,7 @@ impl LOM {
     /// Returns the segment piston in the telescope exit pupil in `[nm]`
     ///
     /// The segment piston vector is given as `[p11,p21,...,p71,...,p1i,p2i,...,p7i,...,p1n,p2n,...,p7n]` where i is the time index
-    pub fn piston(&self) -> Vec<f64> {
+    pub fn segment_piston(&self) -> Vec<f64> {
         self.sens.as_slice()[OpticalSensitivities::SegmentPiston(vec![])]
             .into_optics(self.rbm.data())
     }
@@ -244,7 +243,7 @@ impl LOM {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use skyangle::{Conversion, SkyAngle};
+    use skyangle::Conversion;
     use std::iter::once;
 
     #[test]
@@ -263,12 +262,8 @@ mod tests {
             .for_each(|str| str[3] = 1f64.from_arcsec());
         m1_rbm[6][3] = 0.5f64.from_arcsec();
         m2_rbm[6][3] = (-4f64).from_arcsec();
-        let data = once((
-            m1_rbm.into_iter().flatten().collect::<Vec<f64>>(),
-            m2_rbm.into_iter().flatten().collect::<Vec<f64>>(),
-        ));
         let lom = LOM::builder()
-            .into_iter_rigid_body_motions(data)
+            .into_iter_rigid_body_motions(once((m1_rbm, m2_rbm)))
             .build()
             .unwrap();
         let stt = lom.segment_tiptilt();
