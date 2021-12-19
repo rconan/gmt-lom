@@ -3,7 +3,7 @@ use std::iter::FromIterator;
 /// GMT M1 and M2 segment rigid body motions
 ///
 /// The rigid body motions are saved in a matrix with 84 rows and as many columns as the number of time steps
-/// A row has the following format: `\[M2,M1\]` where `\[Mi\]=\[S1,S2,S3,S4,S5,S6,S7\] and `\[Sj\]=\[Tjx,Tjy,Tjz,Rjx,Rjy,Rjz\]`
+/// A row has the following format: `[M2,M1]` where `[Mi]=[S1,S2,S3,S4,S5,S6,S7]` and `[Sj]=[Tjx,Tjy,Tjz,Rjx,Rjy,Rjz]`
 pub struct RigidBodyMotions {
     // sampling frequency
     sampling_frequency: Option<f64>,
