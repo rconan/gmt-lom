@@ -19,6 +19,14 @@ fn main() -> anyhow::Result<()> {
     let tiptilt = lom.tiptilt();
 
     println!("TT STD.: {:.0?}mas", tiptilt.std(Some(60_000)));
+    println!(
+        "Segment TT STD.: {:.0?}mas",
+        lom.segment_tiptilt().std(Some(60_000))
+    );
+    println!(
+        "Segment Piston STD.: {:.0?}nm",
+        lom.segment_piston().std(Some(60_000))
+    );
 
     let _: complot::Plot = (
         lom.time()

@@ -205,74 +205,114 @@ impl LOMBuilder {
     }
 }
 
+/// Type holding the tip-tilt values
 pub struct TipTilt(Vec<f64>);
+/// Type holding the segment tip-tilt values
+pub struct SegmentTipTilt(Vec<f64>);
+/// Type holding the segment piston values
+pub struct SegmentPiston(Vec<f64>);
+// Dereferencing
 impl Deref for TipTilt {
     type Target = Vec<f64>;
-
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
-pub struct SegmentTipTilt(Vec<f64>);
 impl Deref for SegmentTipTilt {
     type Target = Vec<f64>;
-
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
-pub struct SegmentPiston(Vec<f64>);
 impl Deref for SegmentPiston {
     type Target = Vec<f64>;
-
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
+/// Trait for the [LOM] optical metrics
+///
+/// A simple trait looking at the number of items in the [TipTilt], [SegmentTipTilt] and [SegmentPiston] metrics
+pub trait OpticalMetrics {
+    fn n_item(&self) -> usize;
+}
+impl OpticalMetrics for TipTilt {
+    /// [TipTilt] `2` x and y items
+    fn n_item(&self) -> usize {
+        2
+    }
+}
+impl OpticalMetrics for SegmentTipTilt {
+    /// [SegmentTipTilt] `7x2` x and y items
+    fn n_item(&self) -> usize {
+        14
+    }
+}
+impl OpticalMetrics for SegmentPiston {
+    /// [SegmentPiston] `7` items
+    fn n_item(&self) -> usize {
+        7
+    }
+}
+/// Statistics on [OpticalMetrics]
 pub trait Stats {
-    fn mean(&self, n_sample: Option<usize>) -> Vec<f64>;
-    fn var(&self, n_sample: Option<usize>) -> Vec<f64>;
-    fn std(&self, n_sample: Option<usize>) -> Vec<f64> {
+    /// Returns the mean values
+    ///
+    /// Optionally, the statistical moment is evaluated on the last [n_sample]
+    fn mean(&self, n_sample: Option<usize>) -> Vec<f64>
+    where
+        Self: Deref<Target = Vec<f64>> + OpticalMetrics,
+    {
+        let n_item = self.n_item();
+        let n_total = self.len() / n_item;
+        assert!(n_total >= n_sample.unwrap_or(n_total), "not enough samples");
+        (0..n_item)
+            .map(|i| {
+                self.iter()
+                    .skip(i)
+                    .step_by(n_item)
+                    .skip(n_total - n_sample.unwrap_or(n_total))
+                    .sum::<f64>()
+                    / n_sample.unwrap_or(n_total) as f64
+            })
+            .collect()
+    }
+    /// Returns the mean variance values
+    ///
+    /// Optionally, the statistical moment is evaluated on the last [n_sample]
+    fn var(&self, n_sample: Option<usize>) -> Vec<f64>
+    where
+        Self: Deref<Target = Vec<f64>> + OpticalMetrics,
+    {
+        let n_item = self.n_item();
+        let n_total = self.len() / n_item;
+        assert!(n_total >= n_sample.unwrap_or(n_total), "not enough samples");
+        (0..n_item)
+            .zip(self.mean(n_sample))
+            .map(|(i, m)| {
+                self.iter()
+                    .skip(i)
+                    .step_by(n_item)
+                    .skip(n_total - n_sample.unwrap_or(n_total))
+                    .map(|&x| x - m)
+                    .fold(0f64, |a, x| a + x * x)
+                    / n_sample.unwrap_or(n_total) as f64
+            })
+            .collect()
+    }
+    /// Returns the standard deviation values
+    ///
+    /// Optionally, the statistical moment is evaluated on the last [n_sample]
+    fn std(&self, n_sample: Option<usize>) -> Vec<f64>
+    where
+        Self: Deref<Target = Vec<f64>> + OpticalMetrics,
+    {
         self.var(n_sample).iter().map(|x| x.sqrt()).collect()
     }
 }
-impl Stats for TipTilt {
-    fn mean(&self, n_sample: Option<usize>) -> Vec<f64> {
-        let n_total = self.len() / 2;
-        vec![
-            self.iter()
-                .step_by(2)
-                .skip(n_total - n_sample.unwrap_or(n_total))
-                .sum::<f64>()
-                / n_sample.unwrap_or(n_total) as f64,
-            self.iter()
-                .skip(1)
-                .step_by(2)
-                .skip(n_total - n_sample.unwrap_or(n_total))
-                .sum::<f64>()
-                / n_sample.unwrap_or(n_total) as f64,
-        ]
-    }
-    fn var(&self, n_sample: Option<usize>) -> Vec<f64> {
-        let mean = self.mean(n_sample);
-        let n_total = self.len() / 2;
-        vec![
-            self.iter()
-                .step_by(2)
-                .skip(n_total - n_sample.unwrap_or(n_total))
-                .map(|&x| x - mean[0])
-                .fold(0f64, |a, x| a + x * x)
-                / n_sample.unwrap_or(n_total) as f64,
-            self.iter()
-                .skip(1)
-                .step_by(2)
-                .skip(n_total - n_sample.unwrap_or(n_total))
-                .map(|&x| x - mean[1])
-                .fold(0f64, |a, x| a + x * x)
-                / n_sample.unwrap_or(n_total) as f64,
-        ]
-    }
-}
+impl Stats for TipTilt {}
+impl Stats for SegmentTipTilt {}
+impl Stats for SegmentPiston {}
 
 /// Linear Optical Model
 pub struct LOM {
