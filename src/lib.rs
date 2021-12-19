@@ -258,7 +258,7 @@ impl OpticalMetrics for SegmentPiston {
 pub trait Stats {
     /// Returns the mean values
     ///
-    /// Optionally, the statistical moment is evaluated on the last [n_sample]
+    /// Optionally, the statistical moment is evaluated on the last `n_sample`
     fn mean(&self, n_sample: Option<usize>) -> Vec<f64>
     where
         Self: Deref<Target = Vec<f64>> + OpticalMetrics,
@@ -279,7 +279,7 @@ pub trait Stats {
     }
     /// Returns the mean variance values
     ///
-    /// Optionally, the statistical moment is evaluated on the last [n_sample]
+    /// Optionally, the statistical moment is evaluated on the last `n_sample`
     fn var(&self, n_sample: Option<usize>) -> Vec<f64>
     where
         Self: Deref<Target = Vec<f64>> + OpticalMetrics,
@@ -302,7 +302,7 @@ pub trait Stats {
     }
     /// Returns the standard deviation values
     ///
-    /// Optionally, the statistical moment is evaluated on the last [n_sample]
+    /// Optionally, the statistical moment is evaluated on the last `n_sample`
     fn std(&self, n_sample: Option<usize>) -> Vec<f64>
     where
         Self: Deref<Target = Vec<f64>> + OpticalMetrics,
