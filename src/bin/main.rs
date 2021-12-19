@@ -4,7 +4,7 @@
 //!  1. the path to the parquet file <".">
 //!  2. the parquet file name without the ".parquet" extension <"data">
 
-use gmt_lom::{Loader, LOM};
+use gmt_lom::{Loader, Stats, LOM};
 use std::env::args;
 
 fn main() -> anyhow::Result<()> {
@@ -17,6 +17,8 @@ fn main() -> anyhow::Result<()> {
         .load_rigid_body_motions(Loader::default().path(&data_path[0]).filename(&filename))?
         .build()?;
     let tiptilt = lom.tiptilt();
+
+    println!("TT STD.: {:.0?}mas", tiptilt.std(Some(60_000)));
 
     let _: complot::Plot = (
         lom.time()

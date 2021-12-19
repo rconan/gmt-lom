@@ -42,6 +42,7 @@ use bincode;
 use std::{
     fs::File,
     marker::PhantomData,
+    ops::Deref,
     path::{Path, PathBuf},
 };
 
@@ -204,6 +205,75 @@ impl LOMBuilder {
     }
 }
 
+pub struct TipTilt(Vec<f64>);
+impl Deref for TipTilt {
+    type Target = Vec<f64>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+pub struct SegmentTipTilt(Vec<f64>);
+impl Deref for SegmentTipTilt {
+    type Target = Vec<f64>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+pub struct SegmentPiston(Vec<f64>);
+impl Deref for SegmentPiston {
+    type Target = Vec<f64>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+pub trait Stats {
+    fn mean(&self, n_sample: Option<usize>) -> Vec<f64>;
+    fn var(&self, n_sample: Option<usize>) -> Vec<f64>;
+    fn std(&self, n_sample: Option<usize>) -> Vec<f64> {
+        self.var(n_sample).iter().map(|x| x.sqrt()).collect()
+    }
+}
+impl Stats for TipTilt {
+    fn mean(&self, n_sample: Option<usize>) -> Vec<f64> {
+        let n_total = self.len() / 2;
+        vec![
+            self.iter()
+                .step_by(2)
+                .skip(n_total - n_sample.unwrap_or(n_total))
+                .sum::<f64>()
+                / n_sample.unwrap_or(n_total) as f64,
+            self.iter()
+                .skip(1)
+                .step_by(2)
+                .skip(n_total - n_sample.unwrap_or(n_total))
+                .sum::<f64>()
+                / n_sample.unwrap_or(n_total) as f64,
+        ]
+    }
+    fn var(&self, n_sample: Option<usize>) -> Vec<f64> {
+        let mean = self.mean(n_sample);
+        let n_total = self.len() / 2;
+        vec![
+            self.iter()
+                .step_by(2)
+                .skip(n_total - n_sample.unwrap_or(n_total))
+                .map(|&x| x - mean[0])
+                .fold(0f64, |a, x| a + x * x)
+                / n_sample.unwrap_or(n_total) as f64,
+            self.iter()
+                .skip(1)
+                .step_by(2)
+                .skip(n_total - n_sample.unwrap_or(n_total))
+                .map(|&x| x - mean[1])
+                .fold(0f64, |a, x| a + x * x)
+                / n_sample.unwrap_or(n_total) as f64,
+        ]
+    }
+}
+
 /// Linear Optical Model
 pub struct LOM {
     sens: Vec<OpticalSensitivities>,
@@ -221,22 +291,29 @@ impl LOM {
     /// Returns the pupil average tip and tilt in `[mas]`
     ///
     /// The tip-tilt vector is given as `[x1,y1,...,xi,yi,...,xn,yn]` where i is the time index
-    pub fn tiptilt(&self) -> Vec<f64> {
-        self.sens.as_slice()[OpticalSensitivities::TipTilt(vec![])].into_optics(self.rbm.data())
+    pub fn tiptilt(&self) -> TipTilt {
+        TipTilt(
+            self.sens.as_slice()[OpticalSensitivities::TipTilt(vec![])]
+                .into_optics(self.rbm.data()),
+        )
     }
     /// Returns the segment piston in the telescope exit pupil in `[nm]`
     ///
     /// The segment piston vector is given as `[p11,p21,...,p71,...,p1i,p2i,...,p7i,...,p1n,p2n,...,p7n]` where i is the time index
-    pub fn segment_piston(&self) -> Vec<f64> {
-        self.sens.as_slice()[OpticalSensitivities::SegmentPiston(vec![])]
-            .into_optics(self.rbm.data())
+    pub fn segment_piston(&self) -> SegmentPiston {
+        SegmentPiston(
+            self.sens.as_slice()[OpticalSensitivities::SegmentPiston(vec![])]
+                .into_optics(self.rbm.data()),
+        )
     }
     /// Returns the segment averaged tip and tilt in the telescope exit pupil in `[mas]`
     ///
     /// The segment tip-tilt vector is given as `[x11,x21,...,x71,y11,y21,...,y71,...,x1i,x2i,...,x7i,y1i,y2i,...,y7i,...,x1n,x2n,...,x7n,y1n,y2n,...,y7n]` where i is the time index
-    pub fn segment_tiptilt(&self) -> Vec<f64> {
-        self.sens.as_slice()[OpticalSensitivities::SegmentTipTilt(vec![])]
-            .into_optics(self.rbm.data())
+    pub fn segment_tiptilt(&self) -> SegmentTipTilt {
+        SegmentTipTilt(
+            self.sens.as_slice()[OpticalSensitivities::SegmentTipTilt(vec![])]
+                .into_optics(self.rbm.data()),
+        )
     }
 }
 
