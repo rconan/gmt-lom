@@ -34,3 +34,6 @@ required-features = ["apache", "complot"]
 [[bin]]
 name = "makesens"
 required-features = ["crseo"]
+
+[package.metadata.docs.rs]
+features = ["apache"]
