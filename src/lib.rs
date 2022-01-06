@@ -44,6 +44,7 @@ use std::{
     marker::PhantomData,
     ops::Deref,
     path::{Path, PathBuf},
+    slice::Chunks,
 };
 
 pub mod optical_sensitivities;
@@ -235,6 +236,13 @@ impl Deref for SegmentPiston {
 /// A simple trait looking at the number of items in the [TipTilt], [SegmentTipTilt] and [SegmentPiston] metrics
 pub trait OpticalMetrics {
     fn n_item(&self) -> usize;
+    /// Returns a [chunks] iterator with chunks the size of [n_item]
+    fn items(&self) -> Chunks<'_, f64>
+    where
+        Self: Deref<Target = Vec<f64>>,
+    {
+        self.deref().chunks(self.n_item())
+    }
 }
 impl OpticalMetrics for TipTilt {
     /// [TipTilt] `2` x and y items
@@ -254,6 +262,7 @@ impl OpticalMetrics for SegmentPiston {
         7
     }
 }
+
 /// Statistics on [OpticalMetrics]
 pub trait Stats {
     /// Returns the mean values
