@@ -10,6 +10,7 @@ readme = "README.md"
 categories = ["science", "simulation"]
 keywords = ["telescope", "astronomy"]
 default-run = "main"
+exclude = ["lompy/"]
 
 [dependencies]
 bincode = "1.3.3"
