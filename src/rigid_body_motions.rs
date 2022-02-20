@@ -86,9 +86,21 @@ impl RigidBodyMotions {
             (0..self.data.ncols()).map(|i| tau * i as f64).collect()
         }
     }
+    /// Returns the number of rigidbody motions sample `n`
+    pub fn len(&self) -> usize {
+        self.data.ncols()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
     /// Returns a reference to the rigid body motion `[84,n]` matrix
     pub fn data(&self) -> &nalgebra::DMatrix<f64> {
         &self.data
+    }
+    /// Consumes the object and returns the rigid body motion `[84,n]` matrix
+    pub fn into_data(self) -> nalgebra::DMatrix<f64> {
+        self.data
     }
 }
 
@@ -107,7 +119,10 @@ pub mod parquet {
 
     impl RigidBodyMotions {
         /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) file
-        pub fn from_parquet<P: AsRef<Path>>(path: P) -> Result<Self> {
+        pub fn from_parquet<P>(path: P) -> Result<Self>
+        where
+            P: AsRef<Path>,
+        {
             let file = File::open(path).unwrap();
             let file_reader = SerializedFileReader::new(file).unwrap();
             let mut arrow_reader = ParquetFileArrowReader::new(Arc::new(file_reader));
