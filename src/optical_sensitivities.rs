@@ -17,6 +17,7 @@ pub enum OpticalSensitivities {
     /// Exit pupil segment piston `[7x84]`
     SegmentPiston(Vec<f64>),
     SegmentMask(Vec<i32>),
+    PupilMask(Vec<bool>),
 }
 impl<'a> From<&'a OpticalSensitivities> for na::DMatrix<f64> {
     fn from(sens: &'a OpticalSensitivities) -> Self {
@@ -426,6 +427,7 @@ impl OpticalSensitivities {
                     .map(|(p, _)| *p)
                     .collect(),
             ),
+            OpticalSensitivities::PupilMask(amplitude),
         ];
         println!(" ... done in {:.3}s", now.elapsed().as_secs_f64());
         Ok(optical_sensitivities)
