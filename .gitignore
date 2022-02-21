@@ -4,3 +4,4 @@ Cargo.lock
 *.bin
 *.parquet
 *.png
+lompy/lompy/

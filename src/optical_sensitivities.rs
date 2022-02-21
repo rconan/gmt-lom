@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use crate::{LinearOpticalModelError, Result};
 use nalgebra as na;
 use serde::{Deserialize, Serialize};
@@ -7,7 +9,18 @@ use skyangle::Conversion;
 ///
 /// Linear transformation of M1 and M2 rigid body motions into wavefront and wavefront piston and tip-tilt modes
 #[derive(Serialize, Deserialize, Clone)]
-pub enum OpticalSensitivities {
+pub struct OpticalSensitivities(Vec<OpticalSensitivity>);
+impl Deref for OpticalSensitivities {
+    type Target = [OpticalSensitivity];
+    fn deref(&self) -> &Self::Target {
+        self.0.as_slice()
+    }
+}
+/// Optical sensitivity
+///
+/// Linear transformation of M1 and M2 rigid body motions into wavefront and wavefront piston and tip-tilt modes
+#[derive(Serialize, Deserialize, Clone)]
+pub enum OpticalSensitivity {
     /// Wavefront sensitivity `[nx84]` where n in the pupil resolution
     Wavefront(Vec<f64>),
     /// Exit pupil tip-tilt sensitivity `[2x84]`
@@ -17,10 +30,11 @@ pub enum OpticalSensitivities {
     /// Exit pupil segment piston `[7x84]`
     SegmentPiston(Vec<f64>),
     SegmentMask(Vec<i32>),
+    PupilMask(Vec<bool>),
 }
-impl<'a> From<&'a OpticalSensitivities> for na::DMatrix<f64> {
-    fn from(sens: &'a OpticalSensitivities) -> Self {
-        use OpticalSensitivities::*;
+impl<'a> From<&'a OpticalSensitivity> for na::DMatrix<f64> {
+    fn from(sens: &'a OpticalSensitivity) -> Self {
+        use OpticalSensitivity::*;
         match sens {
             Wavefront(val) => Some(na::DMatrix::from_column_slice(val.len() / 84, 84, val)),
             TipTilt(val) => Some(na::DMatrix::from_column_slice(2, 84, val)),
@@ -31,9 +45,9 @@ impl<'a> From<&'a OpticalSensitivities> for na::DMatrix<f64> {
         .unwrap()
     }
 }
-impl PartialEq<OpticalSensitivities> for OpticalSensitivities {
-    fn eq(&self, other: &OpticalSensitivities) -> bool {
-        use OpticalSensitivities::*;
+impl PartialEq<OpticalSensitivity> for OpticalSensitivity {
+    fn eq(&self, other: &OpticalSensitivity) -> bool {
+        use OpticalSensitivity::*;
         match (self, other) {
             (Wavefront(_), Wavefront(_)) => true,
             (TipTilt(_), TipTilt(_)) => true,
@@ -44,18 +58,18 @@ impl PartialEq<OpticalSensitivities> for OpticalSensitivities {
         }
     }
 }
-impl std::ops::Index<OpticalSensitivities> for &[OpticalSensitivities] {
-    type Output = OpticalSensitivities;
+impl std::ops::Index<OpticalSensitivity> for OpticalSensitivities {
+    type Output = OpticalSensitivity;
 
-    fn index(&self, index: OpticalSensitivities) -> &Self::Output {
+    fn index(&self, index: OpticalSensitivity) -> &Self::Output {
         self.iter()
             .find_map(|s| if index == *s { Some(s) } else { None })
             .unwrap()
     }
 }
-impl<'a> From<&'a OpticalSensitivities> for &'a [f64] {
-    fn from(sens: &'a OpticalSensitivities) -> Self {
-        use OpticalSensitivities::*;
+impl<'a> From<&'a OpticalSensitivity> for &'a [f64] {
+    fn from(sens: &'a OpticalSensitivity) -> Self {
+        use OpticalSensitivity::*;
         match sens {
             Wavefront(val) | TipTilt(val) | SegmentTipTilt(val) | SegmentPiston(val) => {
                 Some(val.as_slice())
@@ -66,11 +80,11 @@ impl<'a> From<&'a OpticalSensitivities> for &'a [f64] {
     }
 }
 
-impl OpticalSensitivities {
+impl OpticalSensitivity {
     /// Returns M1 wavefront sensitivities `[nx42]`
     pub fn m1_wavefront(&self) -> Result<na::DMatrix<f64>> {
         match self {
-            OpticalSensitivities::Wavefront(sens) => {
+            OpticalSensitivity::Wavefront(sens) => {
                 let n = sens.len() / 84;
                 let (_, m1_tr) = sens.split_at(n * 42);
                 Ok(na::DMatrix::from_iterator(
@@ -85,7 +99,7 @@ impl OpticalSensitivities {
     /// Returns M2 segment tip-tilt sensitivities `[14x14]`
     pub fn m2_rxy(&self) -> Result<na::DMatrix<f64>> {
         match self {
-            OpticalSensitivities::SegmentTipTilt(sens) => {
+            OpticalSensitivity::SegmentTipTilt(sens) => {
                 let (_, m2_tr) = sens.split_at(14 * 42);
                 Ok(na::DMatrix::from_iterator(
                     14,
@@ -102,7 +116,7 @@ impl OpticalSensitivities {
     }
     pub fn into_optics(&self, rbm: &na::DMatrix<f64>) -> Vec<f64> {
         match self {
-            /*OpticalSensitivities::Wavefront(sens) => {
+            /*OpticalSensitivity::Wavefront(sens) => {
                 let n = sens.len() / 84;
                 //println!("n: {}", n);
                 let sensitivity = na::DMatrix::from_column_slice(n, 84, sens);
@@ -134,17 +148,17 @@ impl OpticalSensitivities {
                     now.elapsed().as_secs_f64()
                 );*/
             }*/
-            OpticalSensitivities::TipTilt(sens) => {
+            OpticalSensitivity::TipTilt(sens) => {
                 let sensitivity = na::DMatrix::from_column_slice(2, 84, sens);
                 let tip_tilt = (sensitivity * rbm).map(|x| x.to_mas());
                 tip_tilt.as_slice().to_owned()
             }
-            OpticalSensitivities::SegmentTipTilt(sens) => {
+            OpticalSensitivity::SegmentTipTilt(sens) => {
                 let sensitivity = na::DMatrix::from_column_slice(14, 84, sens);
                 let segment_tip_tilt = (sensitivity * rbm).map(|x| x.to_mas());
                 segment_tip_tilt.as_slice().to_owned()
             }
-            OpticalSensitivities::SegmentPiston(sens) => {
+            OpticalSensitivity::SegmentPiston(sens) => {
                 let sensitivity = na::DMatrix::from_column_slice(7, 84, sens);
                 let segment_piston = (sensitivity * rbm).map(|x| x * 1e9);
                 let mut v: Vec<f64> = vec![];
@@ -163,109 +177,109 @@ impl OpticalSensitivities {
         }
     }
     /*
-        pub fn transform(&self, optics_model: &WindLoadedGmtInner) -> OpticalWindLoad {
-            let n_sample = optics_model.n_sample;
-            let rbm = &optics_model.rbm;
-            match self {
-                OpticalSensitivities::Wavefront(sens) => {
-                    let n = sens.len() / 84;
-                    //println!("n: {}", n);
-                    let sensitivity = na::DMatrix::from_column_slice(n, 84, sens);
-                    //let now = Instant::now();
-                    let wfe_var = {
-                        let n_buf = 1_000;
-                        let mut buf = na::DMatrix::<f64>::zeros(n, n_buf);
-                        let mut s = 0;
-                        let mut var = 0f64;
-                        loop {
-                            if s + n_buf > n_sample {
-                                s -= n_buf;
-                                let n_last = n_sample - s;
-                                let mut buf = na::DMatrix::<f64>::zeros(n, n_last);
-                                buf.gemm(1f64, &sensitivity, &rbm.columns(s, n_last), 0f64);
-                                var += buf.row_variance().as_slice().into_iter().sum::<f64>();
-                                break var;
-                            } else {
-                                buf.gemm(1f64, &sensitivity, &rbm.columns(s, n_buf), 0f64);
-                                var += buf.row_variance().as_slice().into_iter().sum::<f64>();
-                            }
-                            s += n_buf;
-                        }
-                    };
-                    let value = 1e9 * (wfe_var / n_sample as f64).sqrt();
-                    OpticalWindLoad::Wavefront(value)
-                    /*println!(
-                        "Wavefront: {:6.0}nm in {:.3}s", value,
-                        now.elapsed().as_secs_f64()
-                    );*/
-                }
-                OpticalSensitivities::TipTilt(sens) => {
-                    let sensitivity = na::DMatrix::from_column_slice(2, 84, sens);
-                    let tip_tilt = (sensitivity * rbm).map(|x| x.to_mas());
-                    let values = tip_tilt
-                        .column_variance()
-                        .map(|x| x.sqrt())
-                        .as_slice()
-                        .to_owned();
-                    //println!("TT: {:2.0?}mas", &values);
-                    OpticalWindLoad::TipTilt(values)
-                }
-                OpticalSensitivities::SegmentTipTilt(sens) => {
-                    let sensitivity = na::DMatrix::from_column_slice(14, 84, sens);
-                    let segment_tip_tilt = (sensitivity * rbm).map(|x| x.to_mas());
-                    let values: Vec<_> = segment_tip_tilt
-                        .column_variance()
-                        .map(|x| x.sqrt())
-                        .as_slice()
-                        .chunks(7)
-                        .map(|x| x.to_owned())
-                        .collect();
-                    //println!("Segment TT: {:2.0?}mas", values,);
-                    OpticalWindLoad::SegmentTipTilt(values)
-                }
-                OpticalSensitivities::SegmentPiston(sens) => {
-                    let sensitivity = na::DMatrix::from_column_slice(7, 84, sens);
-                    let segment_piston = (sensitivity * rbm).map(|x| x * 1e9);
-                    let mut v: Vec<f64> = vec![];
-                    for (k, row) in segment_piston.row_iter().take(6).enumerate() {
-                        //println!("{}: {:?}", k, row.shape());
-                        v.extend(
-                            &mut segment_piston
-                                .rows(k + 1, 6 - k)
-                                .row_iter()
-                                .flat_map(|y| (y - row).as_slice().to_owned()),
-                        );
-                    }
-                    let value = (na::DMatrix::from_vec(n_sample, 21, v)
-                        .column_variance()
-                        .sum()
-                        / n_sample as f64)
-                        .sqrt();
-                    let values = segment_piston
-                        .column_variance()
-                        .map(|x| x.sqrt())
-                        .as_slice()
-                        .to_owned();
-                    //println!("Diff. piston std: {:5.0}nm", value,);
-                    //println!("Piston: {:3.0?}nm ; ", &values);
-                    OpticalWindLoad::Piston([
-                        PistonWindLoad::DifferentialSegmentPiston(value),
-                        PistonWindLoad::SegmentPiston(values),
-                    ])
-                }
-                OpticalSensitivities::SegmentMask(_) => OpticalWindLoad::WavefrontWoSegmentPiston(None),
-            }
-        }
+       pub fn transform(&self, optics_model: &WindLoadedGmtInner) -> OpticalWindLoad {
+           let n_sample = optics_model.n_sample;
+           let rbm = &optics_model.rbm;
+           match self {
+               OpticalSensitivity::Wavefront(sens) => {
+                   let n = sens.len() / 84;
+                   //println!("n: {}", n);
+                   let sensitivity = na::DMatrix::from_column_slice(n, 84, sens);
+                   //let now = Instant::now();
+                   let wfe_var = {
+                       let n_buf = 1_000;
+                       let mut buf = na::DMatrix::<f64>::zeros(n, n_buf);
+                       let mut s = 0;
+                       let mut var = 0f64;
+                       loop {
+                           if s + n_buf > n_sample {
+                               s -= n_buf;
+                               let n_last = n_sample - s;
+                               let mut buf = na::DMatrix::<f64>::zeros(n, n_last);
+                               buf.gemm(1f64, &sensitivity, &rbm.columns(s, n_last), 0f64);
+                               var += buf.row_variance().as_slice().into_iter().sum::<f64>();
+                               break var;
+                           } else {
+                               buf.gemm(1f64, &sensitivity, &rbm.columns(s, n_buf), 0f64);
+                               var += buf.row_variance().as_slice().into_iter().sum::<f64>();
+                           }
+                           s += n_buf;
+                       }
+                   };
+                   let value = 1e9 * (wfe_var / n_sample as f64).sqrt();
+                   OpticalWindLoad::Wavefront(value)
+                   /*println!(
+                       "Wavefront: {:6.0}nm in {:.3}s", value,
+                       now.elapsed().as_secs_f64()
+                   );*/
+               }
+               OpticalSensitivity::TipTilt(sens) => {
+                   let sensitivity = na::DMatrix::from_column_slice(2, 84, sens);
+                   let tip_tilt = (sensitivity * rbm).map(|x| x.to_mas());
+                   let values = tip_tilt
+                       .column_variance()
+                       .map(|x| x.sqrt())
+                       .as_slice()
+                       .to_owned();
+                   //println!("TT: {:2.0?}mas", &values);
+                   OpticalWindLoad::TipTilt(values)
+               }
+               OpticalSensitivity::SegmentTipTilt(sens) => {
+                   let sensitivity = na::DMatrix::from_column_slice(14, 84, sens);
+                   let segment_tip_tilt = (sensitivity * rbm).map(|x| x.to_mas());
+                   let values: Vec<_> = segment_tip_tilt
+                       .column_variance()
+                       .map(|x| x.sqrt())
+                       .as_slice()
+                       .chunks(7)
+                       .map(|x| x.to_owned())
+                       .collect();
+                   //println!("Segment TT: {:2.0?}mas", values,);
+                   OpticalWindLoad::SegmentTipTilt(values)
+               }
+               OpticalSensitivity::SegmentPiston(sens) => {
+                   let sensitivity = na::DMatrix::from_column_slice(7, 84, sens);
+                   let segment_piston = (sensitivity * rbm).map(|x| x * 1e9);
+                   let mut v: Vec<f64> = vec![];
+                   for (k, row) in segment_piston.row_iter().take(6).enumerate() {
+                       //println!("{}: {:?}", k, row.shape());
+                       v.extend(
+                           &mut segment_piston
+                               .rows(k + 1, 6 - k)
+                               .row_iter()
+                               .flat_map(|y| (y - row).as_slice().to_owned()),
+                       );
+                   }
+                   let value = (na::DMatrix::from_vec(n_sample, 21, v)
+                       .column_variance()
+                       .sum()
+                       / n_sample as f64)
+                       .sqrt();
+                   let values = segment_piston
+                       .column_variance()
+                       .map(|x| x.sqrt())
+                       .as_slice()
+                       .to_owned();
+                   //println!("Diff. piston std: {:5.0}nm", value,);
+                   //println!("Piston: {:3.0?}nm ; ", &values);
+                   OpticalWindLoad::Piston([
+                       PistonWindLoad::DifferentialSegmentPiston(value),
+                       PistonWindLoad::SegmentPiston(values),
+                   ])
+               }
+               OpticalSensitivity::SegmentMask(_) => OpticalWindLoad::WavefrontWoSegmentPiston(None),
+           }
+       }
     */
+}
+#[cfg(feature = "crseo")]
+impl OpticalSensitivities {
     /// Computes optical sensitivities for M1 and M2 rigid body motions
     ///
-    /// Returns a `Vec<OpticalSensitivities>` containing the linear transformations from M1 and M2 rigid body motions to
+    /// Returns a `Vec<OpticalSensitivity>` containing the linear transformations from M1 and M2 rigid body motions to
     /// wavefront, tip-tilt, segment tip-tilt and segment piston
     /// Optionally provides an optical model or uses: [`ceo!(GMT)`](crseo::GMT) and [`ceo!(SOURCE)`](crseo::SOURCE)
-    #[cfg(feature = "crseo")]
-    pub fn compute(
-        model: Option<(crseo::Gmt, crseo::Source)>,
-    ) -> Result<Vec<OpticalSensitivities>> {
+    pub fn compute(model: Option<(crseo::Gmt, crseo::Source)>) -> Result<Self> {
         use crseo::ceo;
         println!("Computing optical sensitivities ...");
         let now = std::time::Instant::now();
@@ -403,7 +417,7 @@ impl OpticalSensitivities {
             }
         }
         let optical_sensitivities = vec![
-            OpticalSensitivities::Wavefront(
+            OpticalSensitivity::Wavefront(
                 phase
                     .chunks(n)
                     .flat_map(|pp| {
@@ -415,10 +429,10 @@ impl OpticalSensitivities {
                     })
                     .collect(),
             ),
-            OpticalSensitivities::TipTilt(tip_tilt),
-            OpticalSensitivities::SegmentPiston(segment_piston),
-            OpticalSensitivities::SegmentTipTilt(segment_tip_tilt),
-            OpticalSensitivities::SegmentMask(
+            OpticalSensitivity::TipTilt(tip_tilt),
+            OpticalSensitivity::SegmentPiston(segment_piston),
+            OpticalSensitivity::SegmentTipTilt(segment_tip_tilt),
+            OpticalSensitivity::SegmentMask(
                 src.segment_mask()
                     .iter()
                     .zip(amplitude.iter())
@@ -426,12 +440,13 @@ impl OpticalSensitivities {
                     .map(|(p, _)| *p)
                     .collect(),
             ),
+            OpticalSensitivity::PupilMask(amplitude),
         ];
         println!(" ... done in {:.3}s", now.elapsed().as_secs_f64());
-        Ok(optical_sensitivities)
+        Ok(Self(optical_sensitivities))
     }
 }
-pub fn from_opticals(senses: &[OpticalSensitivities]) -> na::DMatrix<f64> {
+pub fn from_opticals(senses: &[OpticalSensitivity]) -> na::DMatrix<f64> {
     let mats: Vec<na::DMatrix<f64>> = senses.iter().map(|s| s.into()).collect();
     let n_rows = mats.iter().map(|m| m.nrows()).sum::<usize>();
     let cols: Vec<_> = mats
