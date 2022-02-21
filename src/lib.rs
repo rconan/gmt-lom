@@ -39,7 +39,10 @@
 //! ```
 
 use bincode;
+use serde::Serialize;
+use serde_pickle as pickle;
 use std::{
+    fmt::Display,
     fs::File,
     marker::PhantomData,
     ops::Deref,
@@ -62,8 +65,15 @@ pub enum LinearOpticalModelError {
     SegmentTipTilt,
     #[error("rigid body motions are missing")]
     MissingRigidBodyMotions,
+    #[error("failed to write optical metric to pickle file ")]
+    MetricsPickleFile(#[from] pickle::Error),
 }
 type Result<T> = std::result::Result<T, LinearOpticalModelError>;
+
+pub enum Formatting {
+    AdHoc,
+    Latex,
+}
 
 /// Sensitivities serialization into a [bincode] file
 pub trait Bin {
@@ -207,10 +217,13 @@ impl LOMBuilder {
 }
 
 /// Type holding the tip-tilt values
+#[derive(Serialize)]
 pub struct TipTilt(Vec<f64>);
 /// Type holding the segment tip-tilt values
+#[derive(Serialize)]
 pub struct SegmentTipTilt(Vec<f64>);
 /// Type holding the segment piston values
+#[derive(Serialize)]
 pub struct SegmentPiston(Vec<f64>);
 // Dereferencing
 impl Deref for TipTilt {
@@ -231,6 +244,21 @@ impl Deref for SegmentPiston {
         &self.0
     }
 }
+pub trait ToPkl {
+    /// Writes optical metrics to a [pickle] file
+    fn to_pkl<P: AsRef<Path>>(&self, path: P) -> Result<()>
+    where
+        Self: Serialize + Sized,
+    {
+        let mut file = File::create(&path)?;
+        pickle::ser::to_writer(&mut file, self, pickle::ser::SerOptions::new())?;
+        Ok(())
+    }
+}
+impl ToPkl for TipTilt {}
+impl ToPkl for SegmentTipTilt {}
+impl ToPkl for SegmentPiston {}
+
 /// Trait for the [LOM] optical metrics
 ///
 /// A simple trait looking at the number of items in the [TipTilt], [SegmentTipTilt] and [SegmentPiston] metrics
@@ -243,11 +271,26 @@ pub trait OpticalMetrics {
     {
         self.deref().chunks(self.n_item())
     }
+    fn time_wise(&self, n_sample: Option<usize>) -> Vec<f64>;
 }
 impl OpticalMetrics for TipTilt {
     /// [TipTilt] `2` x and y items
     fn n_item(&self) -> usize {
         2
+    }
+    fn time_wise(&self, n_sample: Option<usize>) -> Vec<f64> {
+        let n_item = self.n_item();
+        let n_total = self.len() / n_item;
+        assert!(n_total >= n_sample.unwrap_or(n_total), "not enough samples");
+        (0..n_item)
+            .flat_map(|i| {
+                self.iter()
+                    .skip(i)
+                    .step_by(n_item)
+                    .skip(n_total - n_sample.unwrap_or(n_total))
+            })
+            .cloned()
+            .collect()
     }
 }
 impl OpticalMetrics for SegmentTipTilt {
@@ -255,11 +298,39 @@ impl OpticalMetrics for SegmentTipTilt {
     fn n_item(&self) -> usize {
         14
     }
+    fn time_wise(&self, n_sample: Option<usize>) -> Vec<f64> {
+        let n_item = self.n_item();
+        let n_total = self.len() / n_item;
+        assert!(n_total >= n_sample.unwrap_or(n_total), "not enough samples");
+        (0..n_item)
+            .flat_map(|i| {
+                self.iter()
+                    .skip(i)
+                    .step_by(n_item)
+                    .skip(n_total - n_sample.unwrap_or(n_total))
+            })
+            .cloned()
+            .collect()
+    }
 }
 impl OpticalMetrics for SegmentPiston {
     /// [SegmentPiston] `7` items
     fn n_item(&self) -> usize {
         7
+    }
+    fn time_wise(&self, n_sample: Option<usize>) -> Vec<f64> {
+        let n_item = self.n_item();
+        let n_total = self.len() / n_item;
+        assert!(n_total >= n_sample.unwrap_or(n_total), "not enough samples");
+        (0..n_item)
+            .flat_map(|i| {
+                self.iter()
+                    .skip(i)
+                    .step_by(n_item)
+                    .skip(n_total - n_sample.unwrap_or(n_total))
+            })
+            .cloned()
+            .collect()
     }
 }
 
@@ -328,10 +399,28 @@ pub struct LOM {
     sens: Vec<OpticalSensitivities>,
     rbm: RigidBodyMotions,
 }
+impl Display for LOM {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.rbm.fmt(f)
+    }
+}
 impl LOM {
+    pub fn latex(&mut self) {
+        self.rbm.format = Formatting::Latex;
+    }
+    pub fn adhoc(&mut self) {
+        self.rbm.format = Formatting::AdHoc;
+    }
     /// Returns the [builder](LOMBuilder)
     pub fn builder() -> LOMBuilder {
         Default::default()
+    }
+    /// Returns the number of rigid body motions sample `n`
+    pub fn len(&self) -> usize {
+        self.rbm.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
     /// Returns a the time vector
     pub fn time(&self) -> Vec<f64> {

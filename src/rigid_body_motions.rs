@@ -1,4 +1,6 @@
-use std::iter::FromIterator;
+use crate::Formatting;
+use skyangle::Conversion;
+use std::{fmt::Display, iter::FromIterator};
 
 /// GMT M1 and M2 segment rigid body motions
 ///
@@ -11,6 +13,51 @@ pub struct RigidBodyMotions {
     time: Option<Vec<f64>>,
     // `[84,n]` matrix of rigid body motion
     data: nalgebra::DMatrix<f64>,
+    pub format: Formatting,
+}
+impl Display for RigidBodyMotions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        //let mean = self.data.row_mean();
+        let var = self.data.column_variance();
+        for (i, var) in var
+            .into_iter()
+            .cloned()
+            .collect::<Vec<f64>>()
+            .chunks(42)
+            .enumerate()
+        {
+            writeln!(f, "M{:} RBM:", i + 1)?;
+            for (j, var) in var.chunks(6).enumerate() {
+                match self.format {
+                    Formatting::AdHoc => {
+                        let t_xyz: Vec<_> = var[..3].iter().map(|x| x.sqrt() * 1e9).collect();
+                        let r_xyz: Vec<_> = var[3..].iter().map(|x| x.sqrt().to_mas()).collect();
+                        writeln!(f, " - #{:} {:6.0?} {:6.0?}", j + 1, t_xyz, r_xyz)?
+                    }
+                    Formatting::Latex => {
+                        let t_xyz: Vec<_> = var[..3]
+                            .iter()
+                            .map(|x| x.sqrt() * 1e9)
+                            .map(|x| format!("{:6.0}", x))
+                            .collect();
+                        let r_xyz: Vec<_> = var[3..]
+                            .iter()
+                            .map(|x| x.sqrt().to_mas())
+                            .map(|x| format!("{:6.0}", x))
+                            .collect();
+                        writeln!(
+                            f,
+                            r" {:} &  {:} & {:} \\",
+                            j + 1,
+                            t_xyz.join(" & "),
+                            r_xyz.join(" & ")
+                        )?
+                    }
+                };
+            }
+        }
+        Ok(())
+    }
 }
 /// Creates a [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 7 segments [Vec] of 6 rigid body motions (Txyz and Rxyz)
 impl FromIterator<(Vec<Vec<f64>>, Vec<Vec<f64>>)> for RigidBodyMotions {
@@ -32,6 +79,7 @@ impl FromIterator<(Vec<Vec<f64>>, Vec<Vec<f64>>)> for RigidBodyMotions {
             sampling_frequency: None,
             time: None,
             data: nalgebra::DMatrix::from_vec(84, data.len() / 84, data),
+            format: Formatting::AdHoc,
         }
     }
 }
@@ -73,6 +121,7 @@ impl<'a> FromIterator<(&'a [f64], &'a [f64])> for RigidBodyMotions {
             sampling_frequency: None,
             time: None,
             data: nalgebra::DMatrix::from_vec(84, data.len() / 84, data),
+            format: Formatting::AdHoc,
         }
     }
 }
@@ -181,6 +230,7 @@ pub mod parquet {
                 sampling_frequency: Some((time[1] - time[0]).recip()),
                 time: Some(time),
                 data: na::DMatrix::from_iterator(84, n, rbm.into_iter().flatten()),
+                format: super::Formatting::AdHoc,
             })
         }
     }
