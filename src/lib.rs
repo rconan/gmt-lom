@@ -50,10 +50,18 @@ use std::{
     slice::Chunks,
 };
 
-pub mod optical_sensitivities;
+mod optical_sensitivities;
 pub use optical_sensitivities::{OpticalSensitivities, OpticalSensitivity};
-pub mod rigid_body_motions;
+mod rigid_body_motions;
 pub use rigid_body_motions::RigidBodyMotions;
+#[cfg(feature = "apache")]
+mod pmts;
+#[cfg(feature = "apache")]
+pub use pmts::Pmt;
+#[cfg(feature = "apache")]
+mod table;
+#[cfg(feature = "apache")]
+pub use table::Table;
 
 #[derive(thiserror::Error, Debug)]
 pub enum LinearOpticalModelError {
@@ -67,6 +75,16 @@ pub enum LinearOpticalModelError {
     MissingRigidBodyMotions,
     #[error("failed to write optical metric to pickle file ")]
     MetricsPickleFile(#[from] pickle::Error),
+    #[cfg(feature = "apache")]
+    #[error("parquet read failed")]
+    Parquet(#[from] parquet::errors::ParquetError),
+    #[cfg(feature = "apache")]
+    #[error("arrow record get failed")]
+    Arrow(#[from] arrow::error::ArrowError),
+    #[error("missing table {0} column ")]
+    Table(String),
+    #[error("PMT read failed")]
+    Read(#[from] csv::Error),
 }
 type Result<T> = std::result::Result<T, LinearOpticalModelError>;
 
@@ -182,6 +200,13 @@ impl LOMBuilder {
     pub fn load_rigid_body_motions(self, rbm_loader: Loader<RigidBodyMotions>) -> Result<Self> {
         Ok(Self {
             rbm: Some(rbm_loader.load()?),
+            ..self
+        })
+    }
+    #[cfg(feature = "apache")]
+    pub fn table_rigid_body_motions(self, table: &Table) -> Result<Self> {
+        Ok(Self {
+            rbm: Some(RigidBodyMotions::from_table(table)?),
             ..self
         })
     }

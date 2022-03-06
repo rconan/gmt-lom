@@ -156,15 +156,10 @@ impl RigidBodyMotions {
 #[cfg(feature = "apache")]
 pub mod parquet {
     use super::RigidBodyMotions;
-    use crate::Result;
-    use arrow::{
-        array::{Float64Array, ListArray},
-        record_batch::RecordBatch,
-    };
+    use crate::{Result, Table};
+    use arrow::array::{Float64Array, ListArray};
     use nalgebra as na;
-    use parquet::arrow::{ArrowReader, ParquetFileArrowReader};
-    use parquet::file::reader::SerializedFileReader;
-    use std::{fs::File, path::Path, sync::Arc};
+    use std::path::Path;
 
     impl RigidBodyMotions {
         /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) file
@@ -172,16 +167,12 @@ pub mod parquet {
         where
             P: AsRef<Path>,
         {
-            let file = File::open(path).unwrap();
-            let file_reader = SerializedFileReader::new(file).unwrap();
-            let mut arrow_reader = ParquetFileArrowReader::new(Arc::new(file_reader));
-            let records = arrow_reader
-                .get_record_reader(2048)
-                .unwrap()
-                .collect::<std::result::Result<Vec<RecordBatch>, arrow::error::ArrowError>>()
-                .unwrap();
-            let schema = records.get(0).unwrap().schema();
-            let table = RecordBatch::concat(&schema, &records).unwrap();
+            let table = Table::from_parquet(path)?;
+            Self::from_table(&table)
+        }
+        /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) table
+        pub fn from_table(t: &Table) -> Result<Self> {
+            let table = t.table();
             let m1_rbm = table
                 .column(0)
                 .as_any()
