@@ -27,6 +27,7 @@ structopt = "0.3.26"
 welch-sde = { path = "../welch-sde", optional = true }
 serde-pickle = "1.1.0"
 csv = "1.1.6"
+matio-rs = { git = "https://github.com/rconan/matio-rs.git", branch = "main" }
 
 [features]
 apache = ["arrow", "parquet"]

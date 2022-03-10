@@ -4,7 +4,10 @@
 //!  1. the path to the parquet file <".">
 //!  2. the parquet file name without the ".parquet" extension <"data">
 
-use gmt_lom::{Loader, OpticalMetrics, Stats, ToPkl, LOM};
+use std::path::Path;
+
+use gmt_lom::{OpticalMetrics, Pmt, Stats, Table, ToPkl, LOM};
+use matio_rs::{MatFile, MatVar, Save};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -40,14 +43,33 @@ struct Opt {
     /// Format output for insertion into Latex tables
     #[structopt(long)]
     latex: bool,
+    /// Compute PMT1 and PMT2
+    #[structopt(long)]
+    pmts: bool,
+    /// Save PMT1 and PMT2 to a Matlab mat file
+    #[structopt(long)]
+    pmts_mat: Option<String>,
+    /// Set M1 RBM to zero
+    #[structopt(long)]
+    zm1: bool,
+    /// Set M2 RBM to zero
+    #[structopt(long)]
+    zm2: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
 
-    let mut lom = LOM::builder()
-        .load_rigid_body_motions(Loader::default().path(opt.path).filename(&opt.file))?
-        .build()?;
+    let path = Path::new(&opt.path);
+    let table = Table::from_parquet(path.join(opt.file))?;
+
+    let mut lom = LOM::builder().table_rigid_body_motions(&table)?.build()?;
+    if opt.zm1 {
+        lom.rbm.zeroed_m1()
+    }
+    if opt.zm2 {
+        lom.rbm.zeroed_m2()
+    }
     if opt.latex {
         lom.latex();
     }
@@ -78,6 +100,30 @@ fn main() -> anyhow::Result<()> {
         "Segment Piston STD.: {:.0?}nm",
         segment_piston.std(Some(n_sample))
     );
+
+    if opt.pmts || opt.pmts_mat.is_some() {
+        println!("PMT");
+        let pmt = Pmt::from_table(&table)?;
+        let mut stt = pmt.segment_tiptilt()?;
+        println!("Segment TT STD.: {:.0?}mas", stt.std(Some(n_sample)));
+        let mut sp = pmt.segment_piston()?;
+        println!("Segment Piston STD.: {:.0?}nm", sp.std(Some(n_sample)));
+        if let Some(matfilename) = opt.pmts_mat {
+            let n = stt.len() / 14;
+            let mat_file = MatFile::save(path.join(matfilename))?;
+            mat_file
+                .write(MatVar::<Vec<f64>>::array(
+                    "segment_tiptilt",
+                    &mut (*stt),
+                    (14, n),
+                )?)
+                .write(MatVar::<Vec<f64>>::array(
+                    "segment_piston",
+                    &mut (*sp),
+                    (7, n),
+                )?);
+        }
+    }
 
     let n = lom.len() - n_sample;
     let _: complot::Plot = (

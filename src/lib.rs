@@ -45,13 +45,13 @@ use std::{
     fmt::Display,
     fs::File,
     marker::PhantomData,
-    ops::Deref,
+    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     slice::Chunks,
 };
 
 mod optical_sensitivities;
-pub use optical_sensitivities::{OpticalSensitivities, OpticalSensitivity};
+pub use optical_sensitivities::{from_opticals, OpticalSensitivities, OpticalSensitivity};
 mod rigid_body_motions;
 pub use rigid_body_motions::RigidBodyMotions;
 #[cfg(feature = "apache")]
@@ -257,10 +257,20 @@ impl Deref for TipTilt {
         &self.0
     }
 }
+impl DerefMut for TipTilt {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 impl Deref for SegmentTipTilt {
     type Target = Vec<f64>;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+impl DerefMut for SegmentTipTilt {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 impl Deref for SegmentPiston {
@@ -269,6 +279,12 @@ impl Deref for SegmentPiston {
         &self.0
     }
 }
+impl DerefMut for SegmentPiston {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 pub trait ToPkl {
     /// Writes optical metrics to a [pickle] file
     fn to_pkl<P: AsRef<Path>>(&self, path: P) -> Result<()>
@@ -296,6 +312,7 @@ pub trait OpticalMetrics {
     {
         self.deref().chunks(self.n_item())
     }
+    /// Returns the metrics assigning each component in a contiguous time vector
     fn time_wise(&self, n_sample: Option<usize>) -> Vec<f64>;
 }
 impl OpticalMetrics for TipTilt {
@@ -422,7 +439,7 @@ impl Stats for SegmentPiston {}
 /// Linear Optical Model
 pub struct LOM {
     sens: OpticalSensitivities,
-    rbm: RigidBodyMotions,
+    pub rbm: RigidBodyMotions,
 }
 impl Display for LOM {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -26,7 +26,7 @@ impl Display for RigidBodyMotions {
             .chunks(42)
             .enumerate()
         {
-            writeln!(f, "M{:} RBM:", i + 1)?;
+            writeln!(f, "M{:} RBM [Txyz[nm]]  [Rxyz[mas]] :", i + 1)?;
             for (j, var) in var.chunks(6).enumerate() {
                 match self.format {
                     Formatting::AdHoc => {
@@ -150,6 +150,18 @@ impl RigidBodyMotions {
     /// Consumes the object and returns the rigid body motion `[84,n]` matrix
     pub fn into_data(self) -> nalgebra::DMatrix<f64> {
         self.data
+    }
+    pub fn zeroed_m1(&mut self) {
+        self.data
+            .row_iter_mut()
+            .take(42)
+            .for_each(|mut x| x.iter_mut().for_each(|x| *x = 0f64));
+    }
+    pub fn zeroed_m2(&mut self) {
+        self.data
+            .row_iter_mut()
+            .skip(42)
+            .for_each(|mut x| x.iter_mut().for_each(|x| *x = 0f64));
     }
 }
 

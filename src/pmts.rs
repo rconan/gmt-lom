@@ -12,7 +12,7 @@ pub struct Pmt {
 }
 impl Pmt {
     /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) table
-    pub fn from_table(t: Table) -> Result<Self> {
+    pub fn from_table(t: &Table) -> Result<Self> {
         let table = t.table();
         let (col, _) = table
             .schema()
@@ -54,13 +54,17 @@ impl Pmt {
         let pmt_sens: na::DMatrix<f64> =
             PmtSensitivity::new("pmts/GMT-DTA-190951_RevB_pmt1.csv")?.into();
         let segment_tiptilt = pmt_sens * &self.data;
-        Ok(SegmentTipTilt(segment_tiptilt.as_slice().to_vec()))
+        Ok(SegmentTipTilt(
+            segment_tiptilt.map(|x| x * 1e3).as_slice().to_vec(),
+        ))
     }
     pub fn segment_piston(&self) -> Result<SegmentPiston> {
         let pmt_sens: na::DMatrix<f64> =
             PmtSensitivity::new("pmts/GMT-DTA-190951_RevB_pmt2.csv")?.into();
         let segment_piston = pmt_sens * &self.data;
-        Ok(SegmentPiston(segment_piston.as_slice().to_vec()))
+        Ok(SegmentPiston(
+            segment_piston.map(|x| x * 1e9).as_slice().to_vec(),
+        ))
     }
 }
 #[derive(Debug)]
