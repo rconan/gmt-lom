@@ -5,7 +5,7 @@ use parquet::file::reader::SerializedFileReader;
 use std::{fs::File, path::Path, sync::Arc};
 
 pub struct Table {
-    table: RecordBatch,
+    record: RecordBatch,
 }
 
 impl Table {
@@ -21,10 +21,16 @@ impl Table {
             .unwrap()
             .collect::<std::result::Result<Vec<RecordBatch>, arrow::error::ArrowError>>()?;
         let schema = records.get(0).unwrap().schema();
-        let table = RecordBatch::concat(&schema, &records)?;
-        Ok(Self { table })
+        let record = RecordBatch::concat(&schema, &records)?;
+        Ok(Self { record })
     }
     pub fn table(&self) -> &RecordBatch {
-        &self.table
+        &self.record
+    }
+}
+
+impl From<RecordBatch> for Table {
+    fn from(record: RecordBatch) -> Self {
+        Self { record }
     }
 }

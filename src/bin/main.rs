@@ -7,7 +7,7 @@
 use std::path::Path;
 
 use gmt_lom::{OpticalMetrics, Pmt, Stats, Table, ToPkl, LOM};
-use matio_rs::{MatFile, MatVar, Save};
+use matio_rs::{Load, MatFile, MatVar, Save};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -49,6 +49,9 @@ struct Opt {
     /// Save PMT1 and PMT2 to a Matlab mat file
     #[structopt(long)]
     pmts_mat: Option<String>,
+    /// Shuffle the PMTS
+    #[structopt(long)]
+    pmts_shuffle: bool,
     /// Set M1 RBM to zero
     #[structopt(long)]
     zm1: bool,
@@ -103,7 +106,15 @@ fn main() -> anyhow::Result<()> {
 
     if opt.pmts || opt.pmts_mat.is_some() {
         println!("PMT");
-        let pmt = Pmt::from_table(&table)?;
+        let mut pmt = Pmt::from_table(&table)?;
+        if opt.pmts_shuffle {
+            let mat_file = MatFile::load("new_order_of_PMT_outputs.mat")?;
+            if let Ok(mat) = mat_file.read("outputOrderNew") {
+                let idx: Vec<f64> = mat.into();
+                println!("Shuffling PMT order!");
+                pmt.shuffle(idx.iter().map(|x| *x as usize - 1).collect::<Vec<usize>>());
+            }
+        }
         let mut stt = pmt.segment_tiptilt()?;
         println!("Segment TT STD.: {:.0?}mas", stt.std(Some(n_sample)));
         let mut sp = pmt.segment_piston()?;

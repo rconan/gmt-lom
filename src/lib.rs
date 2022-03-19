@@ -42,6 +42,7 @@ use bincode;
 use serde::Serialize;
 use serde_pickle as pickle;
 use std::{
+    env,
     fmt::Display,
     fs::File,
     marker::PhantomData,
@@ -144,8 +145,9 @@ impl Default for Loader<OpticalSensitivities> {
     /// Default [Loader] for [Vec] of [OpticalSensitivity],
     /// expecting the file `optical_sensitivities.rs.bin` in the current folder
     fn default() -> Self {
+        let path = env::var("OPTICS_SENSES").unwrap_or_else(|_| ".".to_string());
         Self {
-            path: Path::new(".").to_path_buf(),
+            path: Path::new(&path).to_path_buf(),
             filename: String::from("optical_sensitivities.rs.bin"),
             phantom: PhantomData,
         }

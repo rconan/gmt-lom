@@ -50,6 +50,10 @@ impl Pmt {
             data: na::DMatrix::from_iterator(300, n, rbm.into_iter().flatten()),
         })
     }
+    pub fn shuffle(&mut self, idx: Vec<usize>) {
+        let data: Vec<_> = idx.into_iter().map(|i| self.data.row(i)).collect();
+        self.data = na::DMatrix::from_rows(&data);
+    }
     pub fn segment_tiptilt(&self) -> Result<SegmentTipTilt> {
         let pmt_sens: na::DMatrix<f64> =
             PmtSensitivity::new("pmts/GMT-DTA-190951_RevB_pmt1.csv")?.into();
