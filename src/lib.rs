@@ -145,7 +145,7 @@ impl Default for Loader<OpticalSensitivities> {
     /// Default [Loader] for [Vec] of [OpticalSensitivity],
     /// expecting the file `optical_sensitivities.rs.bin` in the current folder
     fn default() -> Self {
-        let path = env::var("OPTICS_SENSES").unwrap_or_else(|_| ".".to_string());
+        let path = env::var("LOM").unwrap_or_else(|_| ".".to_string());
         Self {
             path: Path::new(&path).to_path_buf(),
             filename: String::from("optical_sensitivities.rs.bin"),
@@ -236,9 +236,7 @@ impl LOMBuilder {
     pub fn build(self) -> Result<LOM> {
         Ok(LOM {
             sens: self.sens.unwrap_or(Loader::default().load()?),
-            rbm: self
-                .rbm
-                .ok_or(LinearOpticalModelError::MissingRigidBodyMotions)?,
+            rbm: self.rbm.unwrap_or_default(),
         })
     }
 }

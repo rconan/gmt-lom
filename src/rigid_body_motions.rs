@@ -15,6 +15,21 @@ pub struct RigidBodyMotions {
     data: nalgebra::DMatrix<f64>,
     pub format: Formatting,
 }
+impl AsMut<nalgebra::DMatrix<f64>> for RigidBodyMotions {
+    fn as_mut(&mut self) -> &mut nalgebra::DMatrix<f64> {
+        &mut self.data
+    }
+}
+impl Default for RigidBodyMotions {
+    fn default() -> Self {
+        Self {
+            sampling_frequency: None,
+            time: None,
+            data: nalgebra::DMatrix::<f64>::zeros(84, 1),
+            format: Formatting::AdHoc,
+        }
+    }
+}
 impl Display for RigidBodyMotions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         //let mean = self.data.row_mean();
