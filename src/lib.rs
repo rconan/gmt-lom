@@ -41,6 +41,7 @@
 use bincode;
 use serde::Serialize;
 use serde_pickle as pickle;
+use skyangle::Conversion;
 use std::{
     env,
     fmt::Display,
@@ -468,13 +469,22 @@ impl LOM {
     pub fn time(&self) -> Vec<f64> {
         self.rbm.time()
     }
-    /// Returns the pupil average tip and tilt in `[mas]`
+    /// Returns the pupil average tip and tilt in `[rd]`
     ///
     /// The tip-tilt vector is given as `[x1,y1,...,xi,yi,...,xn,yn]` where i is the time index
     pub fn tiptilt(&self) -> TipTilt {
         TipTilt(self.sens[OpticalSensitivity::TipTilt(vec![])].into_optics(self.rbm.data()))
     }
-    /// Returns the segment piston in the telescope exit pupil in `[nm]`
+    pub fn tiptilt_mas(&self) -> TipTilt {
+        TipTilt(
+            self.sens[OpticalSensitivity::TipTilt(vec![])]
+                .into_optics(self.rbm.data())
+                .into_iter()
+                .map(|x| x.to_mas())
+                .collect::<Vec<f64>>(),
+        )
+    }
+    /// Returns the segment piston in the telescope exit pupil in `[m]`
     ///
     /// The segment piston vector is given as `[p11,p21,...,p71,...,p1i,p2i,...,p7i,...,p1n,p2n,...,p7n]` where i is the time index
     pub fn segment_piston(&self) -> SegmentPiston {
@@ -482,12 +492,21 @@ impl LOM {
             self.sens[OpticalSensitivity::SegmentPiston(vec![])].into_optics(self.rbm.data()),
         )
     }
-    /// Returns the segment averaged tip and tilt in the telescope exit pupil in `[mas]`
+    /// Returns the segment averaged tip and tilt in the telescope exit pupil in `[rd]`
     ///
     /// The segment tip-tilt vector is given as `[x11,x21,...,x71,y11,y21,...,y71,...,x1i,x2i,...,x7i,y1i,y2i,...,y7i,...,x1n,x2n,...,x7n,y1n,y2n,...,y7n]` where i is the time index
     pub fn segment_tiptilt(&self) -> SegmentTipTilt {
         SegmentTipTilt(
             self.sens[OpticalSensitivity::SegmentTipTilt(vec![])].into_optics(self.rbm.data()),
+        )
+    }
+    pub fn segment_tiptilt_mas(&self) -> SegmentTipTilt {
+        SegmentTipTilt(
+            self.sens[OpticalSensitivity::SegmentTipTilt(vec![])]
+                .into_optics(self.rbm.data())
+                .into_iter()
+                .map(|x| x.to_mas())
+                .collect::<Vec<f64>>(),
         )
     }
 }

@@ -3,7 +3,6 @@ use std::ops::Deref;
 use crate::{LinearOpticalModelError, Result};
 use nalgebra as na;
 use serde::{Deserialize, Serialize};
-use skyangle::Conversion;
 
 /// Optical sensitivities
 ///
@@ -150,17 +149,17 @@ impl OpticalSensitivity {
             }*/
             OpticalSensitivity::TipTilt(sens) => {
                 let sensitivity = na::DMatrix::from_column_slice(2, 84, sens);
-                let tip_tilt = (sensitivity * rbm).map(|x| x.to_mas());
+                let tip_tilt = sensitivity * rbm;
                 tip_tilt.as_slice().to_owned()
             }
             OpticalSensitivity::SegmentTipTilt(sens) => {
                 let sensitivity = na::DMatrix::from_column_slice(14, 84, sens);
-                let segment_tip_tilt = (sensitivity * rbm).map(|x| x.to_mas());
+                let segment_tip_tilt = sensitivity * rbm;
                 segment_tip_tilt.as_slice().to_owned()
             }
             OpticalSensitivity::SegmentPiston(sens) => {
                 let sensitivity = na::DMatrix::from_column_slice(7, 84, sens);
-                let segment_piston = (sensitivity * rbm).map(|x| x * 1e9);
+                let segment_piston = sensitivity * rbm;
                 let mut v: Vec<f64> = vec![];
                 for (k, row) in segment_piston.row_iter().take(6).enumerate() {
                     //println!("{}: {:?}", k, row.shape());
