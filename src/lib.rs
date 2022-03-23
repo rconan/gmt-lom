@@ -57,10 +57,6 @@ pub use optical_sensitivities::{from_opticals, OpticalSensitivities, OpticalSens
 mod rigid_body_motions;
 pub use rigid_body_motions::RigidBodyMotions;
 #[cfg(feature = "apache")]
-mod pmts;
-#[cfg(feature = "apache")]
-pub use pmts::Pmt;
-#[cfg(feature = "apache")]
 mod table;
 #[cfg(feature = "apache")]
 pub use table::Table;

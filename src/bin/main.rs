@@ -6,8 +6,7 @@
 
 use std::path::Path;
 
-use gmt_lom::{OpticalMetrics, Pmt, Stats, Table, ToPkl, LOM};
-use matio_rs::{Load, MatFile, MatVar, Save};
+use gmt_lom::{OpticalMetrics, Stats, Table, ToPkl, LOM};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -43,16 +42,6 @@ struct Opt {
     /// Format output for insertion into Latex tables
     #[structopt(long)]
     latex: bool,
-    /// Compute PMT1 and PMT2
-    #[structopt(long)]
-    pmts: bool,
-    /// Save PMT1 and PMT2 to a Matlab mat file
-    #[structopt(long)]
-    pmts_mat: Option<String>,
-    /// Shuffle the PMTS
-    #[structopt(long)]
-    pmts_shuffle: bool,
-    /// Set M1 RBM to zero
     #[structopt(long)]
     zm1: bool,
     /// Set M2 RBM to zero
@@ -103,38 +92,6 @@ fn main() -> anyhow::Result<()> {
         "Segment Piston STD.: {:.0?}nm",
         segment_piston.std(Some(n_sample))
     );
-
-    if opt.pmts || opt.pmts_mat.is_some() {
-        println!("PMT");
-        let mut pmt = Pmt::from_table(&table)?;
-        if opt.pmts_shuffle {
-            let mat_file = MatFile::load("new_order_of_PMT_outputs.mat")?;
-            if let Ok(mat) = mat_file.read("outputOrderNew") {
-                let idx: Vec<f64> = mat.into();
-                println!("Shuffling PMT order!");
-                pmt.shuffle(idx.iter().map(|x| *x as usize - 1).collect::<Vec<usize>>());
-            }
-        }
-        let mut stt = pmt.segment_tiptilt()?;
-        println!("Segment TT STD.: {:.0?}mas", stt.std(Some(n_sample)));
-        let mut sp = pmt.segment_piston()?;
-        println!("Segment Piston STD.: {:.0?}nm", sp.std(Some(n_sample)));
-        if let Some(matfilename) = opt.pmts_mat {
-            let n = stt.len() / 14;
-            let mat_file = MatFile::save(path.join(matfilename))?;
-            mat_file
-                .write(MatVar::<Vec<f64>>::array(
-                    "segment_tiptilt",
-                    &mut (*stt),
-                    (14, n),
-                )?)
-                .write(MatVar::<Vec<f64>>::array(
-                    "segment_piston",
-                    &mut (*sp),
-                    (7, n),
-                )?);
-        }
-    }
 
     let n = lom.len() - n_sample;
     let _: complot::Plot = (
