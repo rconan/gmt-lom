@@ -5,3 +5,6 @@ Cargo.lock
 *.parquet
 *.png
 lompy/lompy/
+*.pkl
+*.mat
+pmts
