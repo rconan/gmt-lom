@@ -187,6 +187,7 @@ pub mod parquet {
     use arrow::array::{Float64Array, ListArray};
     use nalgebra as na;
     use std::path::Path;
+    use arrow::record_batch::RecordBatch;
 
     impl RigidBodyMotions {
         /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) file
@@ -197,9 +198,12 @@ pub mod parquet {
             let table = Table::from_parquet(path)?;
             Self::from_table(&table)
         }
-        /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) table
+        /// Creates a [RigidBodyMotions] from a [Table]
         pub fn from_table(t: &Table) -> Result<Self> {
-            let table = t.table();
+            Self::from_record(&t.table())
+        }
+        /// Creates a [RigidBodyMotions] from an Arrow table
+        pub fn from_record(table: &RecordBatch) -> Result<Self> {
             let m1_rbm = table
                 .column(0)
                 .as_any()

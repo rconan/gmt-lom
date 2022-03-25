@@ -209,6 +209,16 @@ impl LOMBuilder {
             ..self
         })
     }
+    #[cfg(feature = "apache")]
+    pub fn rigid_body_motions_record(
+        self,
+        record: &arrow::record_batch::RecordBatch,
+    ) -> Result<Self> {
+        Ok(Self {
+            rbm: Some(RigidBodyMotions::from_record(record)?),
+            ..self
+        })
+    }
     /// Sets [RigidBodyMotions] from an iterator of [tuple] of M1 and M2 segments [Vec] of 6 rigid body motions (Txyz and Rxyz)
     pub fn into_iter_rigid_body_motions(
         self,
