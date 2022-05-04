@@ -7,6 +7,7 @@
 use std::path::Path;
 
 use gmt_lom::{OpticalMetrics, Stats, Table, ToPkl, LOM};
+use skyangle::Conversion;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -79,10 +80,10 @@ fn main() -> anyhow::Result<()> {
         (Some(l), Some(s)) => Ok((s * l).round() as usize),
     }?;
 
-    println!("TT STD.: {:.0?}mas", tiptilt.std(Some(n_sample)));
+    println!("TT STD.: {:.0?}mas", tiptilt.std(Some(n_sample)).to_mas());
     println!(
         "Segment TT STD.: {:.0?}mas",
-        lom.segment_tiptilt().std(Some(n_sample))
+        lom.segment_tiptilt().std(Some(n_sample)).to_mas()
     );
     let segment_piston = lom.segment_piston();
     if let Some(segment_piston_file) = opt.segment_piston_pickle {
@@ -90,7 +91,11 @@ fn main() -> anyhow::Result<()> {
     }
     println!(
         "Segment Piston STD.: {:.0?}nm",
-        segment_piston.std(Some(n_sample))
+        segment_piston
+            .std(Some(n_sample))
+            .into_iter()
+            .map(|x| x * 1e9)
+            .collect::<Vec<f64>>()
     );
 
     let n = lom.len() - n_sample;
