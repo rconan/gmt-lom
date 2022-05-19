@@ -185,9 +185,9 @@ pub mod parquet {
     use super::RigidBodyMotions;
     use crate::{Result, Table};
     use arrow::array::{Float64Array, ListArray};
+    use arrow::record_batch::RecordBatch;
     use nalgebra as na;
     use std::path::Path;
-    use arrow::record_batch::RecordBatch;
 
     impl RigidBodyMotions {
         /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) file
@@ -204,11 +204,19 @@ pub mod parquet {
         }
         /// Creates a [RigidBodyMotions] from an Arrow table
         pub fn from_record(table: &RecordBatch) -> Result<Self> {
+            let (idx, _) = table
+                .schema()
+                .column_with_name("OSSM1Lcl")
+                .expect("OSSM1Lcl not found in table");
             let m1_rbm = table
-                .column(0)
+                .column(idx)
                 .as_any()
                 .downcast_ref::<ListArray>()
                 .unwrap();
+            let (idx, _) = table
+                .schema()
+                .column_with_name("MCM2Lcl6D")
+                .expect("MCM2Lcl6D not found in table");
             let m2_rbm = table
                 .column(1)
                 .as_any()
