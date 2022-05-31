@@ -1,6 +1,6 @@
 [package]
 name = "gmt-lom"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 license = "MIT"
 description = "Giant Magellan Telescope Geometric Linear Optical Transformations"
@@ -14,17 +14,17 @@ exclude = ["lompy/"]
 
 [dependencies]
 bincode = "1.3.3"
-nalgebra = "0.30"
+nalgebra = "0.31"
 serde = { version = "1.0.131", features = ["derive"] }
 thiserror = "1.0.30"
-crseo = { version = "0.2.0", path = "../crseo", optional = true}
+crseo = { version = "0.3.0", optional = true }
 skyangle = "0.1"
 anyhow = "1.0.51"
 complot = { version = "0.3.1", features = ["png"], optional = true }
 arrow = { version = "10.0", optional = true }
 parquet = { version = "10.0", optional = true }
 structopt = "0.3.26"
-welch-sde = { version = "0.1.0",  path = "../welch-sde", optional = true }
+welch-sde = { version = "0.1.0", path = "../welch-sde", optional = true }
 serde-pickle = "1.1.0"
 csv = "1.1.6"
 
