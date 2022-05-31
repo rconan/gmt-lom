@@ -92,7 +92,7 @@ fn main() -> anyhow::Result<()> {
         "Segment Piston STD.: {:.0?}nm",
         segment_piston
             .std(Some(n_sample))
-            .iter()
+            .into_iter()
             .map(|x| x * 1e9)
             .collect::<Vec<f64>>()
     );
