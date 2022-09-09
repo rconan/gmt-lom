@@ -185,32 +185,47 @@ pub mod parquet {
     use super::RigidBodyMotions;
     use crate::{Result, Table};
     use arrow::array::{Float64Array, ListArray};
+    use arrow::record_batch::RecordBatch;
     use nalgebra as na;
     use std::path::Path;
-    use arrow::record_batch::RecordBatch;
 
     impl RigidBodyMotions {
         /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) file
-        pub fn from_parquet<P>(path: P) -> Result<Self>
+        pub fn from_parquet<P>(
+            path: P,
+            m1_rbm_label: Option<&str>,
+            m2_rbm_label: Option<&str>,
+        ) -> Result<Self>
         where
             P: AsRef<Path>,
         {
             let table = Table::from_parquet(path)?;
-            Self::from_table(&table)
+            Self::from_table(&table, m1_rbm_label, m2_rbm_label)
         }
         /// Creates a [RigidBodyMotions] from a [Table]
-        pub fn from_table(t: &Table) -> Result<Self> {
-            Self::from_record(&t.table())
+        pub fn from_table(
+            t: &Table,
+            m1_rbm_label: Option<&str>,
+            m2_rbm_label: Option<&str>,
+        ) -> Result<Self> {
+            Self::from_record(&t.table(), m1_rbm_label, m2_rbm_label)
         }
         /// Creates a [RigidBodyMotions] from an Arrow table
-        pub fn from_record(table: &RecordBatch) -> Result<Self> {
+        pub fn from_record(
+            table: &RecordBatch,
+            m1_rbm_label: Option<&str>,
+            m2_rbm_label: Option<&str>,
+        ) -> Result<Self> {
+            let schema = table.schema();
+            let idx = schema.index_of(m1_rbm_label.unwrap_or("OSSM1Lcl"))?;
             let m1_rbm = table
-                .column(0)
+                .column(idx)
                 .as_any()
                 .downcast_ref::<ListArray>()
                 .unwrap();
+            let idx = schema.index_of(m2_rbm_label.unwrap_or("MCM2Lcl6D"))?;
             let m2_rbm = table
-                .column(1)
+                .column(idx)
                 .as_any()
                 .downcast_ref::<ListArray>()
                 .unwrap();

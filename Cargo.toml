@@ -1,6 +1,6 @@
 [package]
 name = "gmt-lom"
-version = "0.1.8"
+version = "1.0.0"
 edition = "2021"
 license = "MIT"
 description = "Giant Magellan Telescope Geometric Linear Optical Transformations"
@@ -24,7 +24,7 @@ complot = { version = "0.3.1", features = ["png"], optional = true }
 arrow = { version = "10.0", optional = true }
 parquet = { version = "10.0", optional = true }
 structopt = "0.3.26"
-welch-sde = { version = "0.1.0", path = "../welch-sde", optional = true }
+welch-sde = { version = "0.1.0", optional = true }
 serde-pickle = "1.1.0"
 csv = "1.1.6"
 
