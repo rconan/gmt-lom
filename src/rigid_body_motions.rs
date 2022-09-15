@@ -41,15 +41,23 @@ impl Display for RigidBodyMotions {
             .chunks(42)
             .enumerate()
         {
-            writeln!(f, "M{:} RBM [Txyz[nm]]  [Rxyz[mas]] :", i + 1)?;
-            for (j, var) in var.chunks(6).enumerate() {
-                match self.format {
-                    Formatting::AdHoc => {
+            match self.format {
+                Formatting::AdHoc => {
+                    writeln!(f, "M{:} RBM [Txyz[nm]]  [Rxyz[mas]] :", i + 1)?;
+                    for (j, var) in var.chunks(6).enumerate() {
                         let t_xyz: Vec<_> = var[..3].iter().map(|x| x.sqrt() * 1e9).collect();
                         let r_xyz: Vec<_> = var[3..].iter().map(|x| x.sqrt().to_mas()).collect();
                         writeln!(f, " - #{:} {:6.0?} {:6.0?}", j + 1, t_xyz, r_xyz)?
                     }
-                    Formatting::Latex => {
+                }
+                Formatting::Latex => {
+                    writeln!(
+                        f,
+                        "\\begin{{tabular}}{{ccccccc}}
+M{:} & \\multicolumn{{3}}{{c}}{{Txyz[nm]}} & \\multicolumn{{3}}{{c}}{{Rxyz[mas]}} \\\\",
+                        i + 1
+                    )?;
+                    for (j, var) in var.chunks(6).enumerate() {
                         let t_xyz: Vec<_> = var[..3]
                             .iter()
                             .map(|x| x.sqrt() * 1e9)
@@ -68,7 +76,8 @@ impl Display for RigidBodyMotions {
                             r_xyz.join(" & ")
                         )?
                     }
-                };
+                    writeln!(f, "\\end{{tabular}}")?;
+                }
             }
         }
         Ok(())
@@ -217,6 +226,7 @@ pub mod parquet {
             m2_rbm_label: Option<&str>,
         ) -> Result<Self> {
             let schema = table.schema();
+            println!("{:#?}", schema.metadata());
             let idx = schema.index_of(m1_rbm_label.unwrap_or("OSSM1Lcl"))?;
             let m1_rbm = table
                 .column(idx)

@@ -55,7 +55,13 @@ fn main() -> anyhow::Result<()> {
     let path = Path::new(&opt.path);
     let table = Table::from_parquet(path.join(opt.file))?;
 
-    let mut lom = LOM::builder().table_rigid_body_motions(&table)?.build()?;
+    let mut lom = LOM::builder()
+        .table_rigid_body_motions(
+            &table,
+            Some("M1RigidBodyMotions"),
+            Some("M2RigidBodyMotions"),
+        )?
+        .build()?;
     if opt.zm1 {
         lom.rbm.zeroed_m1()
     }
