@@ -173,7 +173,7 @@ impl LoaderTrait<RigidBodyMotions> for Loader<RigidBodyMotions> {
     /// Loads M1 and M2 rigid body motions
     fn load(self) -> Result<RigidBodyMotions> {
         println!("Loading rigid body motions ...");
-        RigidBodyMotions::from_parquet(self.path.join(self.filename))
+        RigidBodyMotions::from_parquet(self.path.join(self.filename), None, None)
     }
 }
 
@@ -203,9 +203,18 @@ impl LOMBuilder {
         })
     }
     #[cfg(feature = "apache")]
-    pub fn table_rigid_body_motions(self, table: &Table) -> Result<Self> {
+    pub fn table_rigid_body_motions(
+        self,
+        table: &Table,
+        m1_rbm_label: Option<&str>,
+        m2_rbm_label: Option<&str>,
+    ) -> Result<Self> {
         Ok(Self {
-            rbm: Some(RigidBodyMotions::from_table(table)?),
+            rbm: Some(RigidBodyMotions::from_table(
+                table,
+                m1_rbm_label,
+                m2_rbm_label,
+            )?),
             ..self
         })
     }
@@ -213,9 +222,15 @@ impl LOMBuilder {
     pub fn rigid_body_motions_record(
         self,
         record: &arrow::record_batch::RecordBatch,
+        m1_rbm_label: Option<&str>,
+        m2_rbm_label: Option<&str>,
     ) -> Result<Self> {
         Ok(Self {
-            rbm: Some(RigidBodyMotions::from_record(record)?),
+            rbm: Some(RigidBodyMotions::from_record(
+                record,
+                m1_rbm_label,
+                m2_rbm_label,
+            )?),
             ..self
         })
     }

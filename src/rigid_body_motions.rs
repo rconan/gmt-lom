@@ -41,15 +41,23 @@ impl Display for RigidBodyMotions {
             .chunks(42)
             .enumerate()
         {
-            writeln!(f, "M{:} RBM [Txyz[nm]]  [Rxyz[mas]] :", i + 1)?;
-            for (j, var) in var.chunks(6).enumerate() {
-                match self.format {
-                    Formatting::AdHoc => {
+            match self.format {
+                Formatting::AdHoc => {
+                    writeln!(f, "M{:} RBM [Txyz[nm]]  [Rxyz[mas]] :", i + 1)?;
+                    for (j, var) in var.chunks(6).enumerate() {
                         let t_xyz: Vec<_> = var[..3].iter().map(|x| x.sqrt() * 1e9).collect();
                         let r_xyz: Vec<_> = var[3..].iter().map(|x| x.sqrt().to_mas()).collect();
                         writeln!(f, " - #{:} {:6.0?} {:6.0?}", j + 1, t_xyz, r_xyz)?
                     }
-                    Formatting::Latex => {
+                }
+                Formatting::Latex => {
+                    writeln!(
+                        f,
+                        "\\begin{{tabular}}{{ccccccc}}
+M{:} & \\multicolumn{{3}}{{c}}{{Txyz[nm]}} & \\multicolumn{{3}}{{c}}{{Rxyz[mas]}} \\\\",
+                        i + 1
+                    )?;
+                    for (j, var) in var.chunks(6).enumerate() {
                         let t_xyz: Vec<_> = var[..3]
                             .iter()
                             .map(|x| x.sqrt() * 1e9)
@@ -68,7 +76,8 @@ impl Display for RigidBodyMotions {
                             r_xyz.join(" & ")
                         )?
                     }
-                };
+                    writeln!(f, "\\end{{tabular}}")?;
+                }
             }
         }
         Ok(())
@@ -191,34 +200,42 @@ pub mod parquet {
 
     impl RigidBodyMotions {
         /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) file
-        pub fn from_parquet<P>(path: P) -> Result<Self>
+        pub fn from_parquet<P>(
+            path: P,
+            m1_rbm_label: Option<&str>,
+            m2_rbm_label: Option<&str>,
+        ) -> Result<Self>
         where
             P: AsRef<Path>,
         {
             let table = Table::from_parquet(path)?;
-            Self::from_table(&table)
+            Self::from_table(&table, m1_rbm_label, m2_rbm_label)
         }
         /// Creates a [RigidBodyMotions] from a [Table]
-        pub fn from_table(t: &Table) -> Result<Self> {
-            Self::from_record(&t.table())
+        pub fn from_table(
+            t: &Table,
+            m1_rbm_label: Option<&str>,
+            m2_rbm_label: Option<&str>,
+        ) -> Result<Self> {
+            Self::from_record(&t.table(), m1_rbm_label, m2_rbm_label)
         }
         /// Creates a [RigidBodyMotions] from an Arrow table
-        pub fn from_record(table: &RecordBatch) -> Result<Self> {
-            let (idx, _) = table
-                .schema()
-                .column_with_name("OSSM1Lcl")
-                .expect("OSSM1Lcl not found in table");
+        pub fn from_record(
+            table: &RecordBatch,
+            m1_rbm_label: Option<&str>,
+            m2_rbm_label: Option<&str>,
+        ) -> Result<Self> {
+            let schema = table.schema();
+            //println!("{:#?}", schema.metadata());
+            let idx = schema.index_of(m1_rbm_label.unwrap_or("OSSM1Lcl"))?;
             let m1_rbm = table
                 .column(idx)
                 .as_any()
                 .downcast_ref::<ListArray>()
                 .unwrap();
-            let (idx, _) = table
-                .schema()
-                .column_with_name("MCM2Lcl6D")
-                .expect("MCM2Lcl6D not found in table");
+            let idx = schema.index_of(m2_rbm_label.unwrap_or("MCM2Lcl6D"))?;
             let m2_rbm = table
-                .column(1)
+                .column(idx)
                 .as_any()
                 .downcast_ref::<ListArray>()
                 .unwrap();

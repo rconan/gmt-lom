@@ -4,10 +4,9 @@
 //!  1. the path to the parquet file <".">
 //!  2. the parquet file name without the ".parquet" extension <"data">
 
-use std::path::Path;
-
 use gmt_lom::{OpticalMetrics, Stats, Table, ToPkl, LOM};
 use skyangle::Conversion;
+use std::path::Path;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -56,7 +55,13 @@ fn main() -> anyhow::Result<()> {
     let path = Path::new(&opt.path);
     let table = Table::from_parquet(path.join(opt.file))?;
 
-    let mut lom = LOM::builder().table_rigid_body_motions(&table)?.build()?;
+    let mut lom = LOM::builder()
+        .table_rigid_body_motions(
+            &table,
+            Some("M1RigidBodyMotions"),
+            Some("M2RigidBodyMotions"),
+        )?
+        .build()?;
     if opt.zm1 {
         lom.rbm.zeroed_m1()
     }
