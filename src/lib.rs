@@ -465,7 +465,65 @@ pub struct LOM {
 }
 impl Display for LOM {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.rbm.fmt(f)
+        let var = self.rbm.data().column_variance();
+        let n_sample = self.len();
+        let tt = self.segment_tiptilt().std(Some(n_sample)).to_mas();
+        let piston = self
+            .segment_piston()
+            .std(Some(n_sample))
+            .into_iter()
+            .map(|x| x * 1e9)
+            .collect::<Vec<f64>>();
+        for (i, var) in var
+            .into_iter()
+            .cloned()
+            .collect::<Vec<f64>>()
+            .chunks(42)
+            .enumerate()
+        {
+            if i == 0 {
+                writeln!(
+                    f,
+                    "\\begin{{tabular}}{{cccccc}}
+\\multicolumn{{6}}{{c}}{{M1}} \\\\
+\\multicolumn{{3}}{{c}}{{Txyz[nm]}} & \\multicolumn{{3}}{{c}}{{Rxyz[mas]}} \\\\",
+                )?;
+            } else {
+                writeln!(
+                f,
+                "\\begin{{tabular}}{{ccccccccc}}
+\\multicolumn{{6}}{{c}}{{M2}} &\\\\
+\\multicolumn{{3}}{{c}}{{Txyz[nm]}} & \\multicolumn{{3}}{{c}}{{Rxyz[mas]}} & $\\theta_x$[mas]& $\\theta_y$[mas] & piston[nm] \\\\",
+            )?;
+            }
+            for (j, var) in var.chunks(6).enumerate() {
+                let t_xyz: Vec<_> = var[..3]
+                    .iter()
+                    .map(|x| x.sqrt() * 1e9)
+                    .map(|x| format!("{:6.0}", x))
+                    .collect();
+                let r_xyz: Vec<_> = var[3..]
+                    .iter()
+                    .map(|x| x.sqrt().to_mas())
+                    .map(|x| format!("{:6.0}", x))
+                    .collect();
+                if i == 0 {
+                    writeln!(f, r" {:} & {:}\\", t_xyz.join(" & "), r_xyz.join(" & "),)?
+                } else {
+                    writeln!(
+                        f,
+                        r" {:} & {:} & {:6.0} & {:6.0} & {:6.0} \\",
+                        t_xyz.join(" & "),
+                        r_xyz.join(" & "),
+                        tt[j],
+                        tt[j + 7],
+                        piston[j]
+                    )?
+                }
+            }
+            writeln!(f, "\\end{{tabular}}")?;
+        }
+        Ok(())
     }
 }
 impl LOM {
