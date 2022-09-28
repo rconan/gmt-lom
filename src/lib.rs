@@ -60,6 +60,8 @@ pub use rigid_body_motions::RigidBodyMotions;
 mod table;
 #[cfg(feature = "apache")]
 pub use table::Table;
+mod actors_interface;
+pub use actors_interface::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum LinearOpticalModelError {
