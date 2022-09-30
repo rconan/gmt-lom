@@ -28,10 +28,10 @@ welch-sde = { version = "0.1.0", optional = true }
 serde-pickle = "1.1.0"
 csv = "1.1.6"
 dos_actors = { version = "3.0.1", path = "../dos-actors", package = "gmt_dos-actors" }
-fem = { version = "0.3.0", path = "../fem", package = "gmt-fem", default-features = false, optional = true }
 fsm = { version = "1.0.0", path = "../m2-ctrl", package = "m2-ctrl", features = [
     "fsm",
 ], optional = true }
+dos-clients_io = { version = "0.1.0", path = "../dos-actors/clients/io", package = "gmt_dos-clients_io" }
 
 [features]
 apache = ["arrow", "parquet"]

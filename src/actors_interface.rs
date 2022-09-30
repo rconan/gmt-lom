@@ -17,21 +17,19 @@ let lom: Actor<_> = lom::LOM::builder().build().unwrap().into();
 
 */
 use crate::LOM;
-#[cfg(feature = "fem")]
 use dos_actors::io::Read;
 use dos_actors::{
     io::{Data, UniqueIdentifier, Write},
     Update, UID,
 };
-#[cfg(feature = "fem")]
 use std::convert::AsMut;
 use std::sync::Arc;
+use dos_clients_io::{M1RigidBodyMotions,M2RigidBodyMotions};
 
 impl Update for LOM {}
 
-#[cfg(feature = "fem")]
-impl Read<fem::fem_io::OSSM1Lcl> for LOM {
-    fn read(&mut self, data: Arc<Data<fem::fem_io::OSSM1Lcl>>) {
+impl Read<M1RigidBodyMotions> for LOM {
+    fn read(&mut self, data: Arc<Data<M1RigidBodyMotions>>) {
         self.rbm
             .as_mut()
             .column_mut(0)
@@ -42,9 +40,8 @@ impl Read<fem::fem_io::OSSM1Lcl> for LOM {
     }
 }
 
-#[cfg(feature = "fem")]
-impl Read<fem::fem_io::MCM2Lcl6D> for LOM {
-    fn read(&mut self, data: Arc<Data<fem::fem_io::MCM2Lcl6D>>) {
+impl Read<M2RigidBodyMotions> for LOM {
+    fn read(&mut self, data: Arc<Data<M2RigidBodyMotions>>) {
         //dbg!((**data).iter().sum::<f64>() * 1e6);
         self.rbm
             .as_mut()
