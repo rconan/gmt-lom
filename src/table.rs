@@ -1,8 +1,10 @@
 use crate::Result;
-use arrow::record_batch::RecordBatch;
-use parquet::arrow::{ArrowReader, ParquetFileArrowReader};
-use parquet::file::reader::SerializedFileReader;
-use std::{fs::File, path::Path, sync::Arc};
+use arrow::{
+    compute::concat_batches, error::ArrowError, record_batch::RecordBatch,
+    record_batch::RecordBatchReader,
+};
+use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use std::{fs::File, path::Path};
 
 pub struct Table {
     record: RecordBatch,
@@ -14,14 +16,12 @@ impl Table {
         P: AsRef<Path>,
     {
         let file = File::open(path)?;
-        let file_reader = SerializedFileReader::new(file)?;
-        let mut arrow_reader = ParquetFileArrowReader::new(Arc::new(file_reader));
-        let records = arrow_reader
-            .get_record_reader(2048)
-            .unwrap()
-            .collect::<std::result::Result<Vec<RecordBatch>, arrow::error::ArrowError>>()?;
-        let schema = records.get(0).unwrap().schema();
-        let record = RecordBatch::concat(&schema, &records)?;
+        let parquet_reader = ParquetRecordBatchReaderBuilder::try_new(file)?
+            .with_batch_size(2048)
+            .build()?;
+        let schema = parquet_reader.schema();
+        let records: std::result::Result<Vec<_>, ArrowError> = parquet_reader.collect();
+        let record = concat_batches(&schema, records?.as_slice())?;
         Ok(Self { record })
     }
     pub fn table(&self) -> &RecordBatch {
