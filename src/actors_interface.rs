@@ -17,19 +17,14 @@ let lom: Actor<_> = lom::LOM::builder().build().unwrap().into();
 
 */
 use crate::LOM;
-use dos_actors::io::Read;
-use dos_actors::{
-    io::{Data, UniqueIdentifier, Write},
-    Update, UID,
-};
+use gmt_dos_clients::interface::{Data, Read, Update, Write, UID};
+use gmt_dos_clients_io::{gmt_m1::M1RigidBodyMotions, gmt_m2::M2RigidBodyMotions};
 use std::convert::AsMut;
-use std::sync::Arc;
-use dos_clients_io::{M1RigidBodyMotions,M2RigidBodyMotions};
 
 impl Update for LOM {}
 
 impl Read<M1RigidBodyMotions> for LOM {
-    fn read(&mut self, data: Arc<Data<M1RigidBodyMotions>>) {
+    fn read(&mut self, data: Data<M1RigidBodyMotions>) {
         self.rbm
             .as_mut()
             .column_mut(0)
@@ -41,7 +36,7 @@ impl Read<M1RigidBodyMotions> for LOM {
 }
 
 impl Read<M2RigidBodyMotions> for LOM {
-    fn read(&mut self, data: Arc<Data<M2RigidBodyMotions>>) {
+    fn read(&mut self, data: Data<M2RigidBodyMotions>) {
         //dbg!((**data).iter().sum::<f64>() * 1e6);
         self.rbm
             .as_mut()
@@ -57,29 +52,29 @@ impl Read<M2RigidBodyMotions> for LOM {
 #[derive(UID)]
 pub enum TipTilt {}
 impl Write<TipTilt> for LOM {
-    fn write(&mut self) -> Option<Arc<Data<TipTilt>>> {
-        Some(Arc::new(Data::new((*self.tiptilt()).clone())))
+    fn write(&mut self) -> Option<Data<TipTilt>> {
+        Some(Data::new((*self.tiptilt()).clone()))
     }
 }
 /// Segment tip and tilt in the GMT focal plane
 #[derive(UID)]
 pub enum SegmentTipTilt {}
 impl Write<SegmentTipTilt> for LOM {
-    fn write(&mut self) -> Option<Arc<Data<SegmentTipTilt>>> {
-        Some(Arc::new(Data::new((*self.segment_tiptilt()).clone())))
+    fn write(&mut self) -> Option<Data<SegmentTipTilt>> {
+        Some(Data::new((*self.segment_tiptilt()).clone()))
     }
 }
 #[cfg(feature = "fsm")]
 impl Write<fsm::TTFB> for LOM {
-    fn write(&mut self) -> Option<Arc<Data<fsm::TTFB>>> {
-        Some(Arc::new(Data::new((*self.segment_tiptilt()).clone())))
+    fn write(&mut self) -> Option<Data<fsm::TTFB>> {
+        Some(Data::new((*self.segment_tiptilt()).clone()))
     }
 }
 /// Segment piston in the GMT exit pupil
 #[derive(UID)]
 pub enum SegmentPiston {}
 impl Write<SegmentPiston> for LOM {
-    fn write(&mut self) -> Option<Arc<Data<SegmentPiston>>> {
-        Some(Arc::new(Data::new((*self.segment_tiptilt()).clone())))
+    fn write(&mut self) -> Option<Data<SegmentPiston>> {
+        Some(Data::new((*self.segment_tiptilt()).clone()))
     }
 }

@@ -279,10 +279,14 @@ impl OpticalSensitivities {
     /// wavefront, tip-tilt, segment tip-tilt and segment piston
     /// Optionally provides an optical model or uses: [`ceo!(GMT)`](crseo::GMT) and [`ceo!(SOURCE)`](crseo::SOURCE)
     pub fn compute(model: Option<(crseo::Gmt, crseo::Source)>) -> Result<Self> {
-        use crseo::ceo;
+        use crseo::{Builder, FromBuilder, Gmt, Source};
+        use skyangle::Conversion;
         println!("Computing optical sensitivities ...");
         let now = std::time::Instant::now();
-        let (mut gmt, mut src) = model.unwrap_or((ceo!(GMT), ceo!(SOURCE)));
+        let (mut gmt, mut src) = model.unwrap_or((
+            Gmt::builder().build().unwrap(),
+            Source::builder().build().unwrap(),
+        ));
         let stroke_fn = |dof| if dof < 3 { 1e-6 } else { 1f64.from_arcsec() };
 
         let mut tip_tilt = vec![];
@@ -344,12 +348,7 @@ impl OpticalSensitivities {
                     src.segment_gradients()
                         .into_iter()
                         .zip(push_segment_tip_tilt.into_iter())
-                        .flat_map(|(left, right)| {
-                            left.into_iter()
-                                .zip(right.into_iter())
-                                .map(|(l, r)| 0.5f64 * (r as f64 - l as f64) / stroke)
-                                .collect::<Vec<f64>>()
-                        }),
+                        .map(|(l, r)| 0.5f64 * (r as f64 - l as f64) / stroke),
                 );
             }
         }
@@ -406,12 +405,7 @@ impl OpticalSensitivities {
                     src.segment_gradients()
                         .into_iter()
                         .zip(push_segment_tip_tilt.into_iter())
-                        .flat_map(|(left, right)| {
-                            left.into_iter()
-                                .zip(right.into_iter())
-                                .map(|(l, r)| 0.5f64 * (r as f64 - l as f64) / stroke)
-                                .collect::<Vec<f64>>()
-                        }),
+                        .map(|(l, r)| 0.5f64 * (r as f64 - l as f64) / stroke),
                 );
             }
         }

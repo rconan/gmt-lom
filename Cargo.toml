@@ -1,6 +1,6 @@
 [package]
 name = "gmt-lom"
-version = "1.0.1"
+version = "2.0.0"
 edition = "2021"
 license = "MIT"
 description = "Giant Magellan Telescope Geometric Linear Optical Transformations"
@@ -14,24 +14,26 @@ exclude = ["lompy/"]
 
 [dependencies]
 bincode = "1.3.3"
-nalgebra = "0.31"
+nalgebra = "0.32.1"
 serde = { version = "1.0.131", features = ["derive"] }
 thiserror = "1.0.30"
-crseo = { version = "0.3.0", optional = true }
+crseo = { version = "0.6.1", optional = true }
 skyangle = "0.1"
 anyhow = "1.0.51"
 complot = { version = "0.3.1", features = ["png"], optional = true }
-arrow = { version = "10.0", optional = true }
-parquet = { version = "10.0", optional = true }
+arrow = { version = "30.0", optional = true }
+parquet = { version = "30.0", optional = true }
 structopt = "0.3.26"
 welch-sde = { version = "0.1.0", optional = true }
 serde-pickle = "1.1.0"
 csv = "1.1.6"
-dos_actors = { version = "3.0.1", path = "../dos-actors", package = "gmt_dos-actors" }
-fsm = { version = "1.0.0", path = "../m2-ctrl", package = "m2-ctrl", features = [
-    "fsm",
-], optional = true }
-dos-clients_io = { version = "0.1.0", path = "../dos-actors/clients/io", package = "gmt_dos-clients_io" }
+gmt_dos-clients = { version = "2.1.0", default-features = false, features = [
+    "interface",
+] }
+gmt_dos-clients_io = "2.1.0"
+#fsm = { version = "1.0.0", path = "../m2-ctrl", package = "m2-ctrl", features = [
+#    "fsm",
+#], optional = true }
 
 [features]
 apache = ["arrow", "parquet"]
