@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// Optical sensitivities
 ///
 /// Linear transformation of M1 and M2 rigid body motions into wavefront and wavefront piston and tip-tilt modes
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OpticalSensitivities(Vec<OpticalSensitivity>);
 impl Deref for OpticalSensitivities {
     type Target = [OpticalSensitivity];
@@ -18,7 +18,7 @@ impl Deref for OpticalSensitivities {
 /// Optical sensitivity
 ///
 /// Linear transformation of M1 and M2 rigid body motions into wavefront and wavefront piston and tip-tilt modes
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum OpticalSensitivity {
     /// Wavefront sensitivity `[nx84]` where n in the pupil resolution
     Wavefront(Vec<f64>),

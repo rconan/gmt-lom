@@ -60,7 +60,7 @@ pub use rigid_body_motions::RigidBodyMotions;
 mod table;
 #[cfg(feature = "apache")]
 pub use table::Table;
-pub mod actors_interface;
+// pub mod actors_interface;
 
 #[derive(thiserror::Error, Debug)]
 pub enum LinearOpticalModelError {
@@ -87,6 +87,7 @@ pub enum LinearOpticalModelError {
 }
 type Result<T> = std::result::Result<T, LinearOpticalModelError>;
 
+#[derive(Debug)]
 pub enum Formatting {
     AdHoc,
     Latex,
@@ -307,6 +308,21 @@ impl DerefMut for SegmentPiston {
         &mut self.0
     }
 }
+impl From<TipTilt> for Vec<f64> {
+    fn from(value: TipTilt) -> Self {
+        value.0
+    }
+}
+impl From<SegmentPiston> for Vec<f64> {
+    fn from(value: SegmentPiston) -> Self {
+        value.0
+    }
+}
+impl From<SegmentTipTilt> for Vec<f64> {
+    fn from(value: SegmentTipTilt) -> Self {
+        value.0
+    }
+}
 
 pub trait ToPkl {
     /// Writes optical metrics to a [pickle] file
@@ -460,6 +476,7 @@ impl Stats for SegmentTipTilt {}
 impl Stats for SegmentPiston {}
 
 /// Linear Optical Model
+#[derive(Debug)]
 pub struct LOM {
     sens: OpticalSensitivities,
     pub rbm: RigidBodyMotions,
@@ -467,6 +484,16 @@ pub struct LOM {
 impl Display for LOM {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.rbm.fmt(f)
+    }
+}
+impl<'a> TryFrom<&'a [u8]> for LOM {
+    type Error = LinearOpticalModelError;
+
+    fn try_from(bytes: &'a [u8]) -> std::result::Result<Self, Self::Error> {
+        Ok(Self {
+            sens: bincode::deserialize(bytes)?,
+            rbm: Default::default(),
+        })
     }
 }
 impl LOM {
