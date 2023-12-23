@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{fmt::Display, ops::Deref};
 
 use crate::{LinearOpticalModelError, Result};
 use nalgebra as na;
@@ -13,6 +13,15 @@ impl Deref for OpticalSensitivities {
     type Target = [OpticalSensitivity];
     fn deref(&self) -> &Self::Target {
         self.0.as_slice()
+    }
+}
+impl Display for OpticalSensitivities {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Optical Sensitivities:")?;
+        for s in &self.0 {
+            writeln!(f, " * {s}")?;
+        }
+        Ok(())
     }
 }
 /// Optical sensitivity
@@ -30,6 +39,18 @@ pub enum OpticalSensitivity {
     SegmentPiston(Vec<f64>),
     SegmentMask(Vec<i32>),
     PupilMask(Vec<bool>),
+}
+impl Display for OpticalSensitivity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OpticalSensitivity::Wavefront(_) => write!(f, "Wavefront"),
+            OpticalSensitivity::TipTilt(_) => write!(f, "TipTilt"),
+            OpticalSensitivity::SegmentTipTilt(_) => write!(f, "SegmentTipTilt"),
+            OpticalSensitivity::SegmentPiston(_) => write!(f, "SegmentPiston"),
+            OpticalSensitivity::SegmentMask(_) => write!(f, "SegmentMask"),
+            OpticalSensitivity::PupilMask(_) => write!(f, "PupilMask"),
+        }
+    }
 }
 impl<'a> From<&'a OpticalSensitivity> for na::DMatrix<f64> {
     fn from(sens: &'a OpticalSensitivity) -> Self {
@@ -53,6 +74,7 @@ impl PartialEq<OpticalSensitivity> for OpticalSensitivity {
             (SegmentTipTilt(_), SegmentTipTilt(_)) => true,
             (SegmentPiston(_), SegmentPiston(_)) => true,
             (SegmentMask(_), SegmentMask(_)) => true,
+            (PupilMask(_), PupilMask(_)) => true,
             _ => false,
         }
     }
@@ -63,7 +85,7 @@ impl std::ops::Index<OpticalSensitivity> for OpticalSensitivities {
     fn index(&self, index: OpticalSensitivity) -> &Self::Output {
         self.iter()
             .find_map(|s| if index == *s { Some(s) } else { None })
-            .unwrap()
+            .expect(&format!("cannot find optical sensitivity: {}", index))
     }
 }
 impl<'a> From<&'a OpticalSensitivity> for &'a [f64] {
@@ -171,6 +193,11 @@ impl OpticalSensitivity {
                     );
                 }
                 segment_piston.as_slice().to_owned()
+            }
+            OpticalSensitivity::Wavefront(sens) => {
+                let sensitivity = na::DMatrix::from_column_slice(sens.len() / 84, 84, sens);
+                let wavefront = sensitivity * rbm;
+                wavefront.as_slice().to_owned()
             }
             _ => unimplemented!(),
         }

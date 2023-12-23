@@ -558,6 +558,31 @@ impl LOM {
                 .collect::<Vec<f64>>(),
         )
     }
+    /// Returns the wavefront within the exit pupil in `[m]`
+    pub fn masked_wavefront(&self) -> Vec<f64> {
+        self.sens[OpticalSensitivity::Wavefront(vec![])].into_optics(self.rbm.data())
+    }
+    /// Returns the wavefront in the exit pupil in `[rmm]`
+    pub fn wavefront(&self) -> Vec<f64> {
+        let mut wavefront = self.sens[OpticalSensitivity::Wavefront(vec![])]
+            .into_optics(self.rbm.data())
+            .into_iter();
+        if let OpticalSensitivity::PupilMask(mask) =
+            &self.sens[OpticalSensitivity::PupilMask(vec![])]
+        {
+            mask.into_iter()
+                .map(|&mask| {
+                    if mask {
+                        wavefront.next().unwrap()
+                    } else {
+                        0f64
+                    }
+                })
+                .collect()
+        } else {
+            panic!("`PupilMask` is missing from `OpticalSensitivities`")
+        }
+    }
 }
 
 #[cfg(test)]
