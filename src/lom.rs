@@ -96,7 +96,7 @@ impl LOMBuilder {
 }
 
 /// Linear Optical Model
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LOM {
     sens: OpticalSensitivities,
     pub rbm: RigidBodyMotions,

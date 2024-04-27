@@ -88,7 +88,7 @@ pub enum LinearOpticalModelError {
 }
 type Result<T> = std::result::Result<T, LinearOpticalModelError>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Formatting {
     AdHoc,
     Latex,
@@ -181,13 +181,13 @@ impl LoaderTrait<RigidBodyMotions> for Loader<RigidBodyMotions> {
 }
 
 /// Type holding the tip-tilt values
-#[derive(Serialize)]
+#[derive(Serialize, Debug, Clone)]
 pub struct TipTilt(Vec<f64>);
 /// Type holding the segment tip-tilt values
-#[derive(Serialize)]
+#[derive(Serialize, Debug, Clone)]
 pub struct SegmentTipTilt(Vec<f64>);
 /// Type holding the segment piston values
-#[derive(Serialize)]
+#[derive(Serialize, Debug, Clone)]
 pub struct SegmentPiston(Vec<f64>);
 // Dereferencing
 impl Deref for TipTilt {
@@ -420,8 +420,8 @@ mod tests {
         let mag: Vec<_> = stt[..7]
             .iter()
             .zip(&stt[7..])
-            .map(|(x, y)| x.hypot(*y))
+            .map(|(x, y)| x.hypot(*y).to_arcsec())
             .collect();
-        print!("Segment tiptilt : {:.0?} mas", mag);
+        print!("Segment tiptilt : {:.3?} mas", mag);
     }
 }
