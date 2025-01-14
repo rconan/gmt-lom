@@ -6,7 +6,7 @@ use std::{fmt::Display, iter::FromIterator};
 ///
 /// The rigid body motions are saved in a matrix with 84 rows and as many columns as the number of time steps
 /// A row has the following format: `[M1,M2]` where `[Mi]=[S1,S2,S3,S4,S5,S6,S7]` and `[Sj]=[Tjx,Tjy,Tjz,Rjx,Rjy,Rjz]`
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RigidBodyMotions {
     // sampling frequency
     sampling_frequency: Option<f64>,
