@@ -1,6 +1,8 @@
 use std::{fmt::Display, ops::Deref};
 
 use crate::{LinearOpticalModelError, Result};
+#[cfg(feature = "faer")]
+use faer_ext::IntoFaer;
 use nalgebra as na;
 use serde::{Deserialize, Serialize};
 
@@ -112,7 +114,8 @@ impl<const N: usize> std::ops::Index<OpticalSensitivity<N>> for OpticalSensitivi
     fn index(&self, index: OpticalSensitivity<N>) -> &Self::Output {
         self.0
             .iter()
-            .find_map(|s| if index == *s { Some(s) } else { None })
+            // .find_map(|s| if index == *s { Some(s) } else { None })
+            .find(|&s| index == *s)
             .expect(&format!("cannot find optical sensitivity: {}", index))
     }
 }
@@ -163,6 +166,7 @@ impl<const N: usize> OpticalSensitivity<N> {
             _ => Err(LinearOpticalModelError::SegmentTipTilt),
         }
     }
+    #[cfg(not(feature = "faer"))]
     pub fn into_optics(&self, rbm: &na::DMatrix<f64>) -> Vec<f64> {
         match self {
             /*OpticalSensitivity::Wavefront(sens) => {
@@ -229,6 +233,78 @@ impl<const N: usize> OpticalSensitivity<N> {
             }
             _ => unimplemented!(),
         }
+    }
+
+    #[cfg(feature = "faer")]
+    pub fn into_optics(&self, rbm: &na::DMatrix<f64>) -> Vec<f64> {
+        let mat = match self {
+            /*OpticalSensitivity::Wavefront(sens) => {
+                let n = sens.len() / N;
+                //println!("n: {}", n);
+                let sensitivity = na::DMatrix::from_column_slice(n, N, sens);
+                //let now = Instant::now();
+                let wfe_var = {
+                    let n_buf = 1_000;
+                    let mut buf = na::DMatrix::<f64>::zeros(n, n_buf);
+                    let mut s = 0;
+                    let mut var = 0f64;
+                    loop {
+                        if s + n_buf > n_sample {
+                            s -= n_buf;
+                            let n_last = n_sample - s;
+                            let mut buf = na::DMatrix::<f64>::zeros(n, n_last);
+                            buf.gemm(1f64, &sensitivity, &rbm.columns(s, n_last), 0f64);
+                            var += buf.row_variance().as_slice().into_iter().sum::<f64>();
+                            break var;
+                        } else {
+                            buf.gemm(1f64, &sensitivity, &rbm.columns(s, n_buf), 0f64);
+                            var += buf.row_variance().as_slice().into_iter().sum::<f64>();
+                        }
+                        s += n_buf;
+                    }
+                };
+                let value = 1e9 * (wfe_var / n_sample as f64).sqrt();
+                OpticalWindLoad::Wavefront(value)
+                /*println!(
+                    "Wavefront: {:6.0}nm in {:.3}s", value,
+                    now.elapsed().as_secs_f64()
+                );*/
+            }*/
+            OpticalSensitivity::TipTilt(sens) => {
+                let sensitivity = faer::MatRef::from_column_major_slice(sens, 2, N);
+                sensitivity * rbm.view_range(.., ..).into_faer()
+            }
+            OpticalSensitivity::SegmentTipTilt(sens) => {
+                let sensitivity = faer::MatRef::from_column_major_slice(sens, 14, N);
+                sensitivity * rbm.view_range(.., ..).into_faer()
+            }
+            OpticalSensitivity::SegmentPiston(sens) => {
+                let sensitivity = faer::MatRef::from_column_major_slice(sens, 7, N);
+                sensitivity * rbm.view_range(.., ..).into_faer()
+                // let mut v: Vec<f64> = vec![];
+                // for (k, row) in segment_piston.row_iter().take(6).enumerate() {
+                //     //println!("{}: {:?}", k, row.shape());
+                //     v.extend(
+                //         &mut segment_piston
+                //             .rows(k + 1, 6 - k)
+                //             .row_iter()
+                //             .flat_map(|y| (y - row).as_slice().to_owned()),
+                //     );
+                // }
+            }
+            OpticalSensitivity::Wavefront(sens) => {
+                let sensitivity = faer::MatRef::from_column_major_slice(sens, sens.len() / N, N);
+                sensitivity * rbm.view_range(.., ..).into_faer()
+            }
+            _ => unimplemented!(),
+        };
+        let n = mat.nrows() * mat.ncols();
+        let mut dst = Vec::with_capacity(n);
+        unsafe {
+            std::ptr::copy(mat.as_ptr(), dst.as_mut_ptr(), n);
+            dst.set_len(n);
+        }
+        dst
     }
 
     /*
