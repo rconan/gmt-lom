@@ -71,7 +71,7 @@ impl Display for RigidBodyMotions {
         {
             match self.format {
                 Formatting::AdHoc => {
-                    writeln!(f, "M{:} RBM [Txyz[nm]]  [Rxyz[mas]] :", i + 1)?;
+                    writeln!(f, "M{:} RBM [Txyz[nm]]  [Rxyz[mas]] STD :", i + 1)?;
                     for (j, var) in var.chunks(6).enumerate() {
                         let t_xyz: Vec<_> = var[..3].iter().map(|x| x.sqrt() * 1e9).collect();
                         let r_xyz: Vec<_> = var[3..].iter().map(|x| x.sqrt().to_mas()).collect();

@@ -237,6 +237,7 @@ impl<const N: usize> OpticalSensitivity<N> {
 
     #[cfg(feature = "faer")]
     pub fn into_optics(&self, rbm: &na::DMatrix<f64>) -> Vec<f64> {
+        log::info!("into optics with faer");
         let mat = match self {
             /*OpticalSensitivity::Wavefront(sens) => {
                 let n = sens.len() / N;
@@ -298,13 +299,9 @@ impl<const N: usize> OpticalSensitivity<N> {
             }
             _ => unimplemented!(),
         };
-        let n = mat.nrows() * mat.ncols();
-        let mut dst = Vec::with_capacity(n);
-        unsafe {
-            std::ptr::copy(mat.as_ptr(), dst.as_mut_ptr(), n);
-            dst.set_len(n);
-        }
-        dst
+        mat.col_iter()
+            .flat_map(|c| c.iter().cloned().collect::<Vec<_>>())
+            .collect()
     }
 
     /*

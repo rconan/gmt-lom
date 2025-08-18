@@ -4,56 +4,58 @@
 //!  1. the path to the parquet file <".">
 //!  2. the parquet file name without the ".parquet" extension <"data">
 
+use clap::Parser;
 use gmt_lom::{OpticalMetrics, Stats, Table, ToPkl, LOM};
 use skyangle::Conversion;
 use std::path::Path;
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
-#[structopt(
+#[derive(Debug, Parser)]
+#[command(
     name = "GMT Linear Optical Model",
     about = "GMT M1/M2 rigid body motions to optics linear transformations"
 )]
-struct Opt {
+struct Cli {
     /// Path to the rigid body motions parquet file
-    #[structopt(short, long, default_value = ".")]
+    #[arg(short, long, default_value = ".")]
     path: String,
     /// Name of the parquet data file
-    #[structopt(short, long, default_value = "data.parquet")]
+    #[arg(short, long, default_value = "data.parquet")]
     file: String,
     /// Data sampling frequency [Hz]
-    #[structopt(short, long)]
+    #[arg(short, long)]
     sampling_frequency: Option<f64>,
     /// Compute statistics on the last n seconds
-    #[structopt(short, long)]
+    #[arg(short, long)]
     last: Option<f64>,
     /// Compute the tip and tilt PSDs (requires the "welch-sde" feature)
-    #[structopt(long)]
+    #[arg(long)]
     tip_tilt_psds: bool,
     /// Compute the segment piston PSDs (requires the "welch-sde" feature)
-    #[structopt(long)]
+    #[arg(long)]
     segment_piston_psds: bool,
     /// Save the tip and tilte to a pickle file
-    #[structopt(long)]
+    #[arg(long)]
     tiptilt_pickle: Option<String>,
     /// Save the segment piston to a pickle file
-    #[structopt(long)]
+    #[arg(long)]
     segment_piston_pickle: Option<String>,
     /// Format output for insertion into Latex tables
-    #[structopt(long)]
+    #[arg(long)]
     latex: bool,
-    #[structopt(long)]
+    #[arg(long)]
     zm1: bool,
     /// Set M2 RBM to zero
-    #[structopt(long)]
+    #[arg(long)]
     zm2: bool,
 }
 
 fn main() -> anyhow::Result<()> {
-    let opt = Opt::from_args();
+    env_logger::init();
 
-    let path = Path::new(&opt.path);
-    let table = Table::from_parquet(path.join(opt.file))?;
+    let cli = Cli::parse();
+
+    let path = Path::new(&cli.path);
+    let table = Table::from_parquet(path.join(cli.file))?;
 
     let mut lom = LOM::builder()
         .table_rigid_body_motions(
@@ -62,22 +64,22 @@ fn main() -> anyhow::Result<()> {
             Some("M2RigidBodyMotions"),
         )?
         .build()?;
-    if opt.zm1 {
+    if cli.zm1 {
         lom.rbm.zeroed_m1()
     }
-    if opt.zm2 {
+    if cli.zm2 {
         lom.rbm.zeroed_m2()
     }
-    if opt.latex {
+    if cli.latex {
         lom.latex();
     }
     println!("{lom}");
     let tiptilt = lom.tiptilt();
-    if let Some(tiptilt_file) = opt.tiptilt_pickle {
+    if let Some(tiptilt_file) = cli.tiptilt_pickle {
         tiptilt.to_pkl(tiptilt_file)?;
     }
 
-    let n_sample = match (opt.last, opt.sampling_frequency) {
+    let n_sample = match (cli.last, cli.sampling_frequency) {
         (None, None) => Result::<usize, anyhow::Error>::Ok(lom.len()),
         (_, None) | (None, _) => {
             anyhow::bail!("Either last or sampling-frequency option is missing")
@@ -91,7 +93,7 @@ fn main() -> anyhow::Result<()> {
         lom.segment_tiptilt().std(Some(n_sample)).to_mas()
     );
     let segment_piston = lom.segment_piston();
-    if let Some(segment_piston_file) = opt.segment_piston_pickle {
+    if let Some(segment_piston_file) = cli.segment_piston_pickle {
         segment_piston.to_pkl(segment_piston_file)?;
     }
     println!(
@@ -131,7 +133,7 @@ fn main() -> anyhow::Result<()> {
     )
         .into();
 
-    if opt.tip_tilt_psds {
+    if cli.tip_tilt_psds {
         let n = lom.len() - n_sample;
         let (tip, tilt): (Vec<f64>, Vec<f64>) = {
             let (tip, tilt): (Vec<_>, Vec<_>) =
@@ -145,13 +147,13 @@ fn main() -> anyhow::Result<()> {
         };
         use welch_sde::{Build, PowerSpectrum};
         let welch: PowerSpectrum<f64> = PowerSpectrum::builder(&tip)
-            .sampling_frequency(opt.sampling_frequency.unwrap_or(1f64))
+            .sampling_frequency(cli.sampling_frequency.unwrap_or(1f64))
             .dft_log2_max_size(10)
             .build();
         println!("{welch}");
         let tip_psd = welch.periodogram();
         let welch: PowerSpectrum<f64> = PowerSpectrum::builder(&tilt)
-            .sampling_frequency(opt.sampling_frequency.unwrap_or(1f64))
+            .sampling_frequency(cli.sampling_frequency.unwrap_or(1f64))
             .dft_log2_max_size(10)
             .build();
         let tilt_psd = welch.periodogram();
@@ -186,7 +188,7 @@ fn main() -> anyhow::Result<()> {
         )
             .into();
     }
-    if opt.segment_piston_psds {
+    if cli.segment_piston_psds {
         /*
                let n = lom.len() - n_sample;
                let (tip, tilt): (Vec<f64>, Vec<f64>) = {

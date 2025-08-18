@@ -69,6 +69,8 @@ use crate::rigid_body_motions::RigidBodyMotionsError;
 pub enum LinearOpticalModelError {
     #[error("sensitivities file not found (optical_sensitivities.rs.bin)")]
     SensitivityFile(#[from] std::io::Error),
+    #[error("parquet file: {1:?} not found")]
+    ParquetFile(#[source] std::io::Error, PathBuf),
     #[error("sensitivities cannot be loaded from optical_sensitivities.rs.bin")]
     SensitivityData(#[from] bincode::Error),
     #[error("segment tip-tilt sensitivity is missing")]
@@ -157,7 +159,7 @@ impl<const N: usize> Default for Loader<OpticalSensitivities<N>> {
 impl<const N: usize> LoaderTrait<OpticalSensitivities<N>> for Loader<OpticalSensitivities<N>> {
     /// Loads precomputed optical sensitivities
     fn load(self) -> Result<OpticalSensitivities<N>> {
-        println!("Loading optical sensitivities ...");
+        log::info!("Loading optical sensitivities ...");
         <OpticalSensitivities<N> as Bin>::load(self.path.join(self.filename))
     }
 }
@@ -176,12 +178,8 @@ impl Default for Loader<RigidBodyMotions> {
 impl LoaderTrait<RigidBodyMotions> for Loader<RigidBodyMotions> {
     /// Loads M1 and M2 rigid body motions
     fn load(self) -> Result<RigidBodyMotions> {
-        println!("Loading rigid body motions ...");
-        Ok(RigidBodyMotions::from_parquet(
-            self.path.join(self.filename),
-            None,
-            None,
-        )?)
+        log::info!("Loading rigid body motions ...");
+        RigidBodyMotions::from_parquet(self.path.join(self.filename), None, None)
     }
 }
 
