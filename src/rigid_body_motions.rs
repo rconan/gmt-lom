@@ -193,6 +193,7 @@ impl RigidBodyMotions {
 #[cfg(feature = "apache")]
 pub mod parquet {
     use super::RigidBodyMotions;
+    use crate::table::TableError;
     use crate::{Result, Table};
     use arrow::array::{Float64Array, ListArray};
     use arrow::record_batch::RecordBatch;
@@ -228,13 +229,17 @@ pub mod parquet {
         ) -> Result<Self> {
             let schema = table.schema();
             println!("{:#?}", schema.metadata());
-            let idx = schema.index_of(m1_rbm_label.unwrap_or("OSSM1Lcl"))?;
+            let idx = schema
+                .index_of(m1_rbm_label.unwrap_or("OSSM1Lcl"))
+                .map_err(|e| TableError::from(e))?;
             let m1_rbm = table
                 .column(idx)
                 .as_any()
                 .downcast_ref::<ListArray>()
                 .unwrap();
-            let idx = schema.index_of(m2_rbm_label.unwrap_or("MCM2Lcl6D"))?;
+            let idx = schema
+                .index_of(m2_rbm_label.unwrap_or("MCM2Lcl6D"))
+                .map_err(|e| TableError::from(e))?;
             let m2_rbm = table
                 .column(idx)
                 .as_any()

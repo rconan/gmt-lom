@@ -75,16 +75,13 @@ pub enum LinearOpticalModelError {
     MissingRigidBodyMotions,
     #[error("failed to write optical metric to pickle file ")]
     MetricsPickleFile(#[from] pickle::Error),
-    #[cfg(feature = "apache")]
-    #[error("parquet read failed")]
-    Parquet(#[from] parquet::errors::ParquetError),
-    #[cfg(feature = "apache")]
-    #[error("arrow record get failed")]
-    Arrow(#[from] arrow::error::ArrowError),
     #[error("missing table {0} column ")]
     Table(String),
     #[error("PMT read failed")]
     Read(#[from] csv::Error),
+    #[cfg(feature = "apache")]
+    #[error("failed to read parquet Table")]
+    TableRead(#[from] table::TableError),
 }
 type Result<T> = std::result::Result<T, LinearOpticalModelError>;
 
