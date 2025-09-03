@@ -61,6 +61,8 @@ pub use rigid_body_motions::RigidBodyMotions;
 mod table;
 #[cfg(feature = "apache")]
 pub use table::Table;
+
+use crate::rigid_body_motions::RigidBodyMotionsError;
 // pub mod actors_interface;
 
 #[derive(thiserror::Error, Debug)]
@@ -82,6 +84,8 @@ pub enum LinearOpticalModelError {
     #[cfg(feature = "apache")]
     #[error("failed to read parquet Table")]
     TableRead(#[from] table::TableError),
+    #[error("failed to process rigid body motions")]
+    RigidBodyMotions(#[from] RigidBodyMotionsError),
 }
 type Result<T> = std::result::Result<T, LinearOpticalModelError>;
 
@@ -173,7 +177,11 @@ impl LoaderTrait<RigidBodyMotions> for Loader<RigidBodyMotions> {
     /// Loads M1 and M2 rigid body motions
     fn load(self) -> Result<RigidBodyMotions> {
         println!("Loading rigid body motions ...");
-        RigidBodyMotions::from_parquet(self.path.join(self.filename), None, None)
+        Ok(RigidBodyMotions::from_parquet(
+            self.path.join(self.filename),
+            None,
+            None,
+        )?)
     }
 }
 

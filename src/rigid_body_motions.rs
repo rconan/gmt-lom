@@ -1,6 +1,25 @@
-use crate::Formatting;
+use crate::{table::TableError, Formatting};
+use arrow::error::ArrowError;
 use skyangle::Conversion;
 use std::{fmt::Display, iter::FromIterator};
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct FromRecord(#[from] ArrowError);
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct ToRecord(#[from] ArrowError);
+
+#[derive(Debug, thiserror::Error)]
+pub enum RigidBodyMotionsError {
+    #[error("failed to load rigid body motions from an Arrow record")]
+    FromRecord(#[from] FromRecord),
+    #[error("failed to load rigid body motions from a Table")]
+    FromTable(#[from] TableError),
+    #[error("failed to save rigid body motions to an Arrow record")]
+    ToRecord(#[from] ToRecord),
+}
 
 /// GMT M1 and M2 segment rigid body motions
 ///
@@ -19,6 +38,14 @@ pub struct RigidBodyMotions {
 impl AsMut<nalgebra::DMatrix<f64>> for RigidBodyMotions {
     fn as_mut(&mut self) -> &mut nalgebra::DMatrix<f64> {
         &mut self.data
+    }
+}
+impl From<nalgebra::DMatrix<f64>> for RigidBodyMotions {
+    fn from(data: nalgebra::DMatrix<f64>) -> Self {
+        Self {
+            data,
+            ..Default::default()
+        }
     }
 }
 impl Default for RigidBodyMotions {
@@ -191,100 +218,4 @@ impl RigidBodyMotions {
 }
 
 #[cfg(feature = "apache")]
-pub mod parquet {
-    use super::RigidBodyMotions;
-    use crate::table::TableError;
-    use crate::{Result, Table};
-    use arrow::array::{Float64Array, ListArray};
-    use arrow::record_batch::RecordBatch;
-    use nalgebra as na;
-    use std::path::Path;
-
-    impl RigidBodyMotions {
-        /// Creates a [RigidBodyMotions] from M1 and M2 rigid body motions saved in a [parquet](https://docs.rs/parquet) file
-        pub fn from_parquet<P>(
-            path: P,
-            m1_rbm_label: Option<&str>,
-            m2_rbm_label: Option<&str>,
-        ) -> Result<Self>
-        where
-            P: AsRef<Path>,
-        {
-            let table = Table::from_parquet(path)?;
-            Self::from_table(&table, m1_rbm_label, m2_rbm_label)
-        }
-        /// Creates a [RigidBodyMotions] from a [Table]
-        pub fn from_table(
-            t: &Table,
-            m1_rbm_label: Option<&str>,
-            m2_rbm_label: Option<&str>,
-        ) -> Result<Self> {
-            Self::from_record(&t.table(), m1_rbm_label, m2_rbm_label)
-        }
-        /// Creates a [RigidBodyMotions] from an Arrow table
-        pub fn from_record(
-            table: &RecordBatch,
-            m1_rbm_label: Option<&str>,
-            m2_rbm_label: Option<&str>,
-        ) -> Result<Self> {
-            let schema = table.schema();
-            println!("{:#?}", schema.metadata());
-            let idx = schema
-                .index_of(m1_rbm_label.unwrap_or("OSSM1Lcl"))
-                .map_err(|e| TableError::from(e))?;
-            let m1_rbm = table
-                .column(idx)
-                .as_any()
-                .downcast_ref::<ListArray>()
-                .unwrap();
-            let idx = schema
-                .index_of(m2_rbm_label.unwrap_or("MCM2Lcl6D"))
-                .map_err(|e| TableError::from(e))?;
-            let m2_rbm = table
-                .column(idx)
-                .as_any()
-                .downcast_ref::<ListArray>()
-                .unwrap();
-            let (time, rbm): (Vec<f64>, Vec<Vec<f64>>) = m1_rbm
-                .iter()
-                .zip(m2_rbm.iter())
-                .enumerate()
-                .filter_map(|(k, (m1, m2))| match (m1, m2) {
-                    (Some(m1_rbm), Some(m2_rbm)) => {
-                        let m1_rbm_data = m1_rbm
-                            .as_any()
-                            .downcast_ref::<Float64Array>()
-                            .unwrap()
-                            .iter()
-                            .collect::<Option<Vec<f64>>>();
-                        let m2_rbm_data = m2_rbm
-                            .as_any()
-                            .downcast_ref::<Float64Array>()
-                            .unwrap()
-                            .iter()
-                            .collect::<Option<Vec<f64>>>();
-                        if let (Some(m1_rbm_data), Some(m2_rbm_data)) = (m1_rbm_data, m2_rbm_data) {
-                            Some((
-                                k as f64,
-                                m1_rbm_data
-                                    .into_iter()
-                                    .chain(m2_rbm_data.into_iter())
-                                    .collect::<Vec<f64>>(),
-                            ))
-                        } else {
-                            None
-                        }
-                    }
-                    _ => None,
-                })
-                .unzip();
-            let n = time.len();
-            Ok(Self {
-                sampling_frequency: Some((time[1] - time[0]).recip()),
-                time: Some(time),
-                data: na::DMatrix::from_iterator(84, n, rbm.into_iter().flatten()),
-                format: super::Formatting::AdHoc,
-            })
-        }
-    }
-}
+pub mod parquet;

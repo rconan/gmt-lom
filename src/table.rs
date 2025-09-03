@@ -1,6 +1,8 @@
 use arrow::compute::concat_batches;
 use arrow::record_batch::{RecordBatch, RecordBatchReader};
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use parquet::arrow::ArrowWriter;
+use std::io::BufWriter;
 use std::path::PathBuf;
 use std::{fs::File, path::Path};
 
@@ -39,6 +41,16 @@ impl Table {
     }
     pub fn table(&self) -> &RecordBatch {
         &self.record
+    }
+    pub fn to_parquet(&self, path: impl AsRef<Path>) -> Result<(), TableError> {
+        let file = File::create(&path)
+            .map_err(|e| TableError::ParquetFile(e, path.as_ref().to_path_buf()))?;
+        let mut buffer = BufWriter::new(file);
+        let mut writer =
+            ArrowWriter::try_new(&mut buffer, self.record.schema(), None)?;
+        writer.write(&self.record)?;
+        writer.close()?;
+        Ok(())
     }
 }
 
