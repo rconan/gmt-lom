@@ -24,6 +24,7 @@ pub struct Table {
 }
 
 impl Table {
+    /// Loads a table from a [parquet](https://docs.rs/parquet/latest/parquet/index.html) file
     pub fn from_parquet<P>(path: P) -> Result<Self, TableError>
     where
         P: AsRef<Path>,
@@ -39,9 +40,11 @@ impl Table {
         let record = concat_batches(&schema, records?.as_slice())?;
         Ok(Self { record })
     }
+    /// Returns a reference to the [record](https://docs.rs/arrow/latest/arrow/array/struct.RecordBatch.html)
     pub fn table(&self) -> &RecordBatch {
         &self.record
     }
+    /// Saves a table to a [parquet](https://docs.rs/parquet/latest/parquet/index.html) file
     pub fn to_parquet(&self, path: impl AsRef<Path>) -> Result<(), TableError> {
         let file = File::create(&path)
             .map_err(|e| TableError::ParquetFile(e, path.as_ref().to_path_buf()))?;

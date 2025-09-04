@@ -32,6 +32,7 @@ impl From<StoredTableError> for LinearOpticalModelError {
 }
 
 impl Table {
+    /// Loads a table from a parquet stored remotely in [store](https://docs.rs/object_store/latest/object_store/trait.ObjectStore.html)
     pub async fn from_stored_parquet(
         store: impl ObjectStore,
         object_path: impl Into<object_store::path::Path>,
@@ -56,6 +57,7 @@ impl Table {
             .map_err(|e| StoredTableError::from(e))?;
         Ok(Self { record })
     }
+    /// Saves a table to a parquet stored remotely in [store](https://docs.rs/object_store/latest/object_store/trait.ObjectStore.html)
     pub async fn to_stored_parquet(
         &self,
         store: impl ObjectStore + MultipartStore,

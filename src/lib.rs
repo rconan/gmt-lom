@@ -262,7 +262,7 @@ impl ToPkl for SegmentPiston {}
 /// A simple trait looking at the number of items in the [TipTilt], [SegmentTipTilt] and [SegmentPiston] metrics
 pub trait OpticalMetrics {
     fn n_item(&self) -> usize;
-    /// Returns a [chunks] iterator with chunks the size of [n_item]
+    /// Returns a [Chunks] iterator with chunks the size of [n_item](OpticalMetrics::n_item)
     fn items(&self) -> Chunks<'_, f64>
     where
         Self: Deref<Target = Vec<f64>>,
