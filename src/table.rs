@@ -46,11 +46,17 @@ impl Table {
         let file = File::create(&path)
             .map_err(|e| TableError::ParquetFile(e, path.as_ref().to_path_buf()))?;
         let mut buffer = BufWriter::new(file);
-        let mut writer =
-            ArrowWriter::try_new(&mut buffer, self.record.schema(), None)?;
+        let mut writer = ArrowWriter::try_new(&mut buffer, self.record.schema(), None)?;
         writer.write(&self.record)?;
         writer.close()?;
         Ok(())
+    }
+    pub fn to_mem(&self) -> Result<Vec<u8>, TableError> {
+        let mut buffer = Vec::new();
+        let mut writer = ArrowWriter::try_new(&mut buffer, self.record.schema(), None)?;
+        writer.write(&self.record)?;
+        writer.close()?;
+        Ok(buffer)
     }
 }
 

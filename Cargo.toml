@@ -29,18 +29,27 @@ welch-sde = { version = "0.1.0", optional = true }
 serde-pickle = "1.1.0"
 csv = "1.1.6"
 fsm = { version = "1.0.0", package = "m2-ctrl", features = [
-    "fsm",
+  "fsm",
 ], optional = true }
 clap = { version = "4.4.12", optional = true, features = ["derive"] }
 object_store = { version = "0.12.3", optional = true, features = ["aws"] }
 futures = { version = "0.3.31", optional = true }
+bytes = { version = "1.3", optional = true }
 
 [features]
-default = ["apache"]
+default = ["object_store"]
 apache = ["arrow", "parquet"]
 main = ["apache", "complot", "welch-sde"]
-object_store = ["dep:object_store","apache","parquet/object_store","parquet/async","futures"]
+object_store = [
+  "dep:object_store",
+  "apache",
+  "parquet/object_store",
+  "parquet/async",
+  "futures",
+  "bytes",
+]
 futures = ["dep:futures"]
+bytes = ["dep:bytes"]
 
 [[bin]]
 name = "main"
