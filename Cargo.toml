@@ -1,6 +1,6 @@
 [package]
 name = "gmt-lom"
-version = "2.6.1"
+version = "2.6.2"
 edition = "2021"
 license = "MIT"
 description = "Giant Magellan Telescope Geometric Linear Optical Transformations"
@@ -41,7 +41,7 @@ log = "0.4.27"
 env_logger = "0.11.8"
 
 [features]
-default = ["object_store"]
+default = ["apache"]
 apache = ["arrow", "parquet"]
 object_store = [
   "dep:object_store",
